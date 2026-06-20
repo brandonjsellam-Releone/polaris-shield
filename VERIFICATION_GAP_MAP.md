@@ -82,6 +82,26 @@ This page is only credible if you can act on it. Each weak seam has a falsificat
 - general: `REPRODUCE.md` re-runs every green check on your own machine. If any does not reproduce,
   that is the most valuable finding of all - report it per `SECURITY-DISCLOSURE.md`.
 
+## Council-recommended hardening (2026-06-20; non-breaking; not yet implemented)
+
+A multi-model adversarial review (Grok-4.3, Gemini, Hermes reached; five further apex models rate-limited)
+found **no new breaking flaw**: every higher-severity flag collapsed when checked against the code - e.g. a
+flagged GCM nonce-reuse does not apply (each message derives a fresh key from a fresh ephemeral DH **and** a
+fresh ML-KEM encapsulation, with the AEAD nonce sampled per call). It surfaced two non-breaking
+cryptographic-hardening ideas, recorded here honestly as future work (each changes the combiner and would
+require re-running the four proof lineages):
+
+- **Explicit key-confirmation.** Add a key-confirmation tag over the derived session key so the recipient
+  proves key possession before use - fully closing residual KCI rather than leaning on the transcript /
+  AEAD binding. A protocol addition (new wire field + re-proof).
+- **Dual-PRF public-key binding.** Fold both KEM public keys directly into the combiner IKM (X-Wing /
+  split-PRF style) so the derived key binds the public keys independently of the `recipient_key_id` / AAD
+  transcript binding, for defense-in-depth. A combiner-IKM change (re-proof + new vectors).
+
+These are improvements, **not** fixes: the current binding (`recipient_key_id` = H(public keys) carried in
+the transcript as HKDF `info`, plus the full header as AEAD AAD) was judged sound. They are listed so a
+reviewer sees the strongest available hardening, not because anything is broken.
+
 *This document is maintained as an honest liability. When a gap is closed (e.g. a second primitive
 lineage lands), its row moves from "residual risk" to "closed", with the closing artifact named -
 never silently deleted.*

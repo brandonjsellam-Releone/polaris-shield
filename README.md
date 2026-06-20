@@ -5,7 +5,9 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 The **POLARIS Shield** is the real, runnable form of the BOREALIS / POLARIS **L9 layer**
-(the "post-quantum root of trust"). It is an **algorithm-agile** hybrid (classical +
+(a "post-quantum root of trust" in the **cryptographic** sense — the foundational software PQC
+layer; **not** a hardware root of trust, and providing no TPM / secure-element / measured-boot
+anchor). It is an **algorithm-agile** hybrid (classical +
 post-quantum) cryptosystem on the finalized NIST standards, with a self-describing,
 downgrade-resistant wire format — so data captured today cannot be opened by a future
 cryptographically-relevant quantum computer ("harvest-now, decrypt-later").
@@ -87,7 +89,7 @@ See **[SECURITY.md](SECURITY.md)** and **[THREAT_MODEL.md](THREAT_MODEL.md)**. I
 `kyber-py` / `dilithium-py` **track** FIPS 203/204 but are **NOT FIPS 140-3 validated** and **not**
 side-channel hardened. **ML-KEM (keyGen, encaps, decaps — including the FO-transform
 implicit-rejection branch and the encapsulation-/decapsulation-key checks) and ML-DSA (keyGen,
-sigGen, sigVer), plus SLH-DSA (sigVer), are validated against official NIST ACVP vectors**
+sigGen, sigVer), plus SLH-DSA (sigVer), are conformance-tested against official NIST ACVP vectors**
 (`test_acvp.py`, `test_acvp_slhdsa.py`). What remains **not** ACVP-covered: **ML-DSA has no key-check**
 (NIST publishes no ML-DSA keyCheck vector set and `dilithium-py` exposes no public-/secret-key
 validation, so it is intentionally absent, not faked), and **SLH-DSA keyGen and sigGen** stay
