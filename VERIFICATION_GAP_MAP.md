@@ -84,12 +84,15 @@ This page is only credible if you can act on it. Each weak seam has a falsificat
 
 ## Council-recommended hardening (2026-06-20; non-breaking; not yet implemented)
 
-A multi-model adversarial review (Grok-4.3, Gemini, Hermes reached; five further apex models rate-limited)
-found **no new breaking flaw**: every higher-severity flag collapsed when checked against the code - e.g. a
-flagged GCM nonce-reuse does not apply (each message derives a fresh key from a fresh ephemeral DH **and** a
-fresh ML-KEM encapsulation, with the AEAD nonce sampled per call). It surfaced two non-breaking
-cryptographic-hardening ideas, recorded here honestly as future work (each changes the combiner and would
-require re-running the four proof lineages):
+A multi-model adversarial review (two rounds; **7 of 8 apex models reached**) found **no new breaking
+flaw**: every higher-severity flag collapsed when checked against the code - e.g. a flagged GCM nonce-reuse
+does not apply (each message derives a fresh key from a fresh ephemeral DH **and** a fresh ML-KEM
+encapsulation, with the AEAD nonce sampled per call). **One confirmed medium finding was FIXED** (not
+merely recorded): the verified sender key-id is now **channel-bound into the HKDF FixedInfo** in
+authenticated mode (Gemini; see `FORMAT.md` 2.6(b)), so the key-derivation transcript and the signed
+transcript can no longer diverge on sender identity - the derived AEAD key, not only the ML-DSA signature,
+witnesses the sender. Two further non-breaking hardening ideas remain honest future work (each changes the
+combiner and would require re-running the four proof lineages):
 
 - **Explicit key-confirmation.** Add a key-confirmation tag over the derived session key so the recipient
   proves key possession before use - fully closing residual KCI rather than leaning on the transcript /
