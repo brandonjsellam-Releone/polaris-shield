@@ -23,7 +23,7 @@ hardened. Nothing here claims government endorsement.
   (self-describing key bundles, SHAKE-256 key-ids, scrypt at-rest wrap), and the **streaming AEAD**
   (per-chunk nonce binding a counter + final-flag).
 
-**Out of scope:** the speculative VALYON citadel concept (not code); the underlying NIST-primitive
+**Out of scope:** the speculative VORLATH citadel concept (not code); the underlying NIST-primitive
 libraries beyond the cross-implementation differential below; anything claiming a deployed system.
 
 ## 2. Evidence already in place (start from here, not from zero)

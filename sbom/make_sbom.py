@@ -99,8 +99,8 @@ def main():
                 "description": ("VORLATH Shield - algorithm-agile post-quantum hybrid security "
                                 "(FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation."),
                 "externalReferences": [
-                    {"type": "website", "url": "https://valyonvorlath.io"},
-                    {"type": "vcs", "url": "https://github.com/brandonjsellam-Releone/valyonvorlath"},
+                    {"type": "website", "url": "https://github.com/brandonjsellam-Releone/vorlath-shield"},
+                    {"type": "vcs", "url": "https://github.com/brandonjsellam-Releone/vorlath-shield"},
                 ],
             },
             "tools": [{"vendor": "VORLATH", "name": "make_sbom.py", "version": "1.0"}],

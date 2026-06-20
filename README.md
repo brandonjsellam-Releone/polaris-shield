@@ -4,7 +4,7 @@
 [![formal verification](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/formal.yml/badge.svg)](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/formal.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-The **VORLATH Shield** is the real, runnable form of the VALYON / VORLATH **L9 layer**
+The **VORLATH Shield** is the real, runnable form of the VORLATH **L9 layer**
 (a "post-quantum root of trust" in the **cryptographic** sense — the foundational software PQC
 layer; **not** a hardware root of trust, and providing no TPM / secure-element / measured-boot
 anchor). It is an **algorithm-agile** hybrid (classical +
@@ -12,7 +12,7 @@ post-quantum) cryptosystem on the finalized NIST standards, with a self-describi
 downgrade-resistant wire format — so data captured today cannot be opened by a future
 cryptographically-relevant quantum computer ("harvest-now, decrypt-later").
 
-> **Separate project note.** VORLATH Shield is a component of the (speculative) VALYON /
+> **Separate project note.** VORLATH Shield is a component of the (speculative) VORLATH /
 > VORLATH concept. It is **not** affiliated with, and does not modify, the separate TRELYAN
 > project. Any resemblance in subject matter (post-quantum cryptography) is coincidental to
 > both working in the same standards space.

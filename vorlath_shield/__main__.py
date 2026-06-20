@@ -156,7 +156,7 @@ def cmd_demo(a):
     print("  VORLATH SHIELD v2 - live post-quantum demonstration")
     print("  " + s.name)
     print(line)
-    msg = b"TOP SECRET // VALYON VORLATH // sovereign key material 2026"
+    msg = b"TOP SECRET // VORLATH // sovereign key material 2026"
     pub, priv = shield.generate_recipient_keys(a.suite)
     print(f"\n  recipient key-id: {shield.kem_key_id(pub).hex()}")
 

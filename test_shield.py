@@ -103,7 +103,7 @@ def test_expected_sender_but_anonymous_is_rejected(suite):
 @pytest.mark.parametrize("suite", SUITES)
 def test_signatures_with_context(suite):
     pk, sk = shield.generate_signing_keys(suite)
-    m = b"VALYON / VORLATH evidence record"
+    m = b"VORLATH evidence record"
     sig = shield.sign(sk, m)
     assert shield.verify(pk, m, sig)
     assert not shield.verify(pk, b"forged record", sig)

@@ -72,7 +72,7 @@ properties and assumptions.
 
 ## Reporting
 
-This is a component of the **speculative** VALYON / VORLATH concept (a strategic exercise, not a
+This is a component of the **speculative** VORLATH concept (a strategic exercise, not a
 funded venture) and is **not** affiliated with the separate TRELYAN project. If you find a defect
 in the construction, open an issue describing the property violated and a reproducing case. Do not
 report cryptanalysis intended for operational misuse. The full coordinated-disclosure policy

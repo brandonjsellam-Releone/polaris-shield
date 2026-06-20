@@ -38,8 +38,8 @@ dev = [
 vorlath-shield = "vorlath_shield.__main__:main"
 
 [project.urls]
-Homepage = "https://valyonvorlath.io"
-Source = "https://github.com/brandonjsellam-Releone/valyonvorlath"
+Homepage = "https://github.com/brandonjsellam-Releone/vorlath-shield"
+Source = "https://github.com/brandonjsellam-Releone/vorlath-shield"
 
 [tool.hatch.build.targets.wheel]
 packages = ["vorlath_shield"]

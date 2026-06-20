@@ -24,7 +24,7 @@ sha256sum -c release/RELEASE_MANIFEST.sha256      # every file: OK
 
 # 2. Confirm the signature over the published bundle (keyless cosign / Sigstore)
 cosign verify-blob \
-  --certificate-identity-regexp 'github.com/brandonjsellam-Releone/valyonvorlath' \
+  --certificate-identity-regexp 'github.com/brandonjsellam-Releone/vorlath-shield' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --signature   vorlath-shield-bundle.sig \
   --certificate vorlath-shield-bundle.pem \
@@ -32,7 +32,7 @@ cosign verify-blob \
 
 # 3. Confirm SLSA build provenance traces to the exact commit
 gh attestation verify vorlath-shield-bundle.tar.gz \
-  --repo brandonjsellam-Releone/valyonvorlath
+  --repo brandonjsellam-Releone/vorlath-shield
 ```
 
 If step 1's digest equals the signed digest from step 2, the proofs/tests you re-run from

@@ -18,7 +18,7 @@ FAST = 0x02  # SLH-DSA-SHAKE-128s
 
 def test_slh_dsa_roundtrip():
     pub, priv = ha.generate_high_assurance_keys(FAST)
-    msg = b"VALYON / VORLATH long-lived evidence root"
+    msg = b"VORLATH long-lived evidence root"
     sig = ha.high_assurance_sign(priv, msg)
     assert ha.high_assurance_verify(pub, msg, sig)
     assert not ha.high_assurance_verify(pub, b"forged", sig)
