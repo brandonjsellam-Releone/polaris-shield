@@ -47,9 +47,12 @@ PPK present/absent framing; suite pinned-by-key with `suite_id` bound in three p
 strip fails closed; PPK `FLAG_PPK` bound in all transcripts and backward-compatible byte-identical;
 verify-before-decapsulate; UKS / KCI resistance; expected-sender pinning; replay honestly scoped out.
 
-**Next formal target (disclosed):** the **RFC 8784 PPK leg is argued, not yet machine-proved** — the
-combiner is injective over it (length-framed), but no lineage yet carries a "both KEM legs broken,
-PPK intact => confidentiality" lemma. That is the next gap to close, the same way `sender_kid` just was.
+**PPK leg — now machine-proved (Tamarin, 2026-06-21).** The RFC 8784 PPK leg was the last "argued, not
+proved" combiner leg. `formal/shield_ppk.spthy` (the with-PPK configuration) now carries
+`secrecy_under_both_kem_legs_break` — *both KEM legs broken, PPK intact => confidentiality* — verified
+UNBOUNDED in Tamarin (12/12 lemmas, CI-gated), alongside the hybrid/auth/downgrade/KCI properties
+re-proved in the with-PPK config. Lifting the same lemma into the ProVerif / Verifpal / CryptoVerif
+lineages is the remaining step.
 
 ## The core distinction
 

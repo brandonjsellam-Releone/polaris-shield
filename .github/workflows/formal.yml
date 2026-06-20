@@ -67,14 +67,19 @@ jobs:
       - name: Prove the handshake (unbounded; every lemma must verify)
         run: |
           # Tamarin exits 0 regardless of verified/falsified, so gate on the summary.
-          out="$(tamarin-prover --prove formal/shield.spthy 2>&1)"
-          echo "$out" | sed -n '/summary of summaries/,$p'
-          if echo "$out" | grep -qiE "falsified|analysis incomplete"; then
-            echo "::error::a Tamarin lemma did not verify"; exit 1; fi
-          n="$(echo "$out" | grep -cE 'verified \([0-9]+ steps\)')"
-          echo "verified lemmas: $n"
-          if [ "$n" -lt 11 ]; then echo "::error::expected >=11 verified lemmas, got $n"; exit 1; fi
-          echo "All Tamarin lemmas verified (unbounded sessions)."
+          # Two models: shield.spthy (no-PPK, 11 lemmas) + shield_ppk.spthy (RFC 8784 with-PPK, 12).
+          total=0
+          for f in formal/shield.spthy formal/shield_ppk.spthy; do
+            out="$(tamarin-prover --prove "$f" 2>&1)"
+            echo "== $f =="; echo "$out" | sed -n '/summary of summaries/,$p'
+            if echo "$out" | grep -qiE "falsified|analysis incomplete"; then
+              echo "::error::$f: a Tamarin lemma did not verify"; exit 1; fi
+            n="$(echo "$out" | grep -cE 'verified \([0-9]+ steps\)')"
+            echo "$f verified lemmas: $n"; total=$((total + n))
+          done
+          echo "total verified lemmas: $total"
+          if [ "$total" -lt 23 ]; then echo "::error::expected >=23 verified lemmas (11 + 12), got $total"; exit 1; fi
+          echo "All Tamarin lemmas verified across shield.spthy + shield_ppk.spthy (unbounded)."
 
   prove-cryptoverif:
     name: prove combiner (CryptoVerif, computational)
