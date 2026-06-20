@@ -1,0 +1,45 @@
+(* ============================================================================
+   RFC 8784 PPK combiner leg — computational (CryptoVerif, ROM) proof.
+
+   Companion to shield_combiner.cv (which proves single-leg key-indistinguishability
+   Kc/Kq under a 3-input ROM). Here the combiner is the 4-input KDF over
+   (ss_c, ss_pq, ppk, transcript). The derived key stays indistinguishable from
+   random EVEN WHEN BOTH KEM legs (ss_c AND ss_pq) are leaked, as long as the
+   out-of-band pre-shared key ppk is secret — exactly the RFC 8784 PPK rationale.
+
+   Run: cryptoverif -in oracles shield_ppk_combiner.cv     EXPECTED: All queries proved.
+   ============================================================================ *)
+
+type ss_c_t       [large,fixed].   (* classical ECDH secret  *)
+type ss_pq_t      [large,fixed].   (* ML-KEM shared secret   *)
+type ppk_t        [large,fixed].   (* RFC 8784 pre-shared key *)
+type transcript_t [fixed].         (* HKDF info / transcript  *)
+type key_t        [large,fixed].   (* derived AEAD key        *)
+type hashkey      [fixed].
+
+(* 4-input HKDF combiner as a random oracle on (ss_c, ss_pq, ppk, transcript). *)
+expand ROM_hash_4(hashkey, ss_c_t, ss_pq_t, ppk_t, transcript_t, key_t, H, hashoracle, qH).
+
+query secret Kp.   (* BOTH KEM legs leaked, ppk protected => key ~ random *)
+
+const trP: transcript_t.
+
+(* honest derivation with BOTH KEM legs compromised: leak ss_c AND ss_pq (+ the
+   public transcript); withhold ONLY ppk. Kp := H(ss_c, ss_pq, ppk, trP). *)
+let derivePPK(hk: hashkey) =
+    OderivePPK() :=
+        ss_c  <-R ss_c_t;
+        ss_pq <-R ss_pq_t;
+        ppk   <-R ppk_t;
+        Kp: key_t <- H(hk, ss_c, ss_pq, ppk, trP);
+        return(ss_c, ss_pq, trP).
+
+process
+    Ostart() :=
+        hk <-R hashkey;
+        return();
+        (run hashoracle(hk) | run derivePPK(hk))
+
+(* EXPECTED
+All queries proved.
+END *)

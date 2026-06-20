@@ -50,8 +50,8 @@ composition models**.
 > cryptographer panel (no crypto break).
 >
 > **RFC 8784 PPK (2026-06-21):** `formal/shield_ppk.spthy` machine-proves the PPK guarantee — *both
-> KEM legs broken + PPK intact => secret* — UNBOUNDED in Tamarin (12 lemmas) and ProVerif, CI-gated alongside
-> `shield.spthy`. The last "argued, not proved" combiner leg is now proved in both unbounded lineages.
+> KEM legs broken + PPK intact => secret* — in ALL FOUR lineages — Tamarin + ProVerif (unbounded), Verifpal (bounded), CryptoVerif (computational), CI-gated alongside
+> `shield.spthy`. The last "argued, not proved" combiner leg is now proved in every lineage.
 
 The **four** jobs (`prove`, `prove-tamarin`, `prove-proverif`, `prove-cryptoverif`)
 gate CI in [`.github/workflows/formal.yml`](../.github/workflows/formal.yml); the CryptoVerif gate

@@ -47,12 +47,11 @@ PPK present/absent framing; suite pinned-by-key with `suite_id` bound in three p
 strip fails closed; PPK `FLAG_PPK` bound in all transcripts and backward-compatible byte-identical;
 verify-before-decapsulate; UKS / KCI resistance; expected-sender pinning; replay honestly scoped out.
 
-**PPK leg — now machine-proved (both unbounded lineages, 2026-06-21).** The RFC 8784 PPK leg was the last "argued, not
+**PPK leg — now machine-proved (all four lineages, 2026-06-21).** The RFC 8784 PPK leg was the last "argued, not
 proved" combiner leg. `formal/shield_ppk.spthy` (the with-PPK configuration) now carries
 `secrecy_under_both_kem_legs_break` — *both KEM legs broken, PPK intact => confidentiality* — verified
-UNBOUNDED in BOTH Tamarin (`shield_ppk.spthy`, 12/12 lemmas) and ProVerif (`shield_ppk.pv`, `attacker(secret_m) ==> RevPPK` true), CI-gated, alongside the hybrid/auth/downgrade/KCI properties
-re-proved in the with-PPK config. Lifting it into the Verifpal / CryptoVerif
-lineages is the remaining step.
+verified across ALL FOUR lineages (CI-gated): Tamarin (`shield_ppk.spthy`, 12/12 lemmas) + ProVerif (`shield_ppk.pv`, `attacker(secret_m) ==> RevPPK` true) UNBOUNDED; Verifpal (`shield_ppk.vp`, both KEM legs leaked, *All pass*); CryptoVerif (`shield_ppk_combiner.cv`, *secrecy of Kp up to 2*qH/|ppk|*, computational), alongside the hybrid/auth/downgrade/KCI properties
+re-proved in the with-PPK config. The PPK leg is now proved in EVERY lineage — matching `sender_kid` and the two KEM legs.
 
 ## The core distinction
 

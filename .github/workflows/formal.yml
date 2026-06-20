@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: ["shield.vp", "shield_pq.vp"]
+        model: ["shield.vp", "shield_pq.vp", "shield_ppk.vp"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Verifpal (pinned v0.52.0, content-addressed)
@@ -99,7 +99,7 @@ jobs:
           # shield_combiner_indcca.cv mechanizes the seam-(b) composition (component ML-KEM
           # IND-CCA => combined hybrid KEM IND-CCA); its bound must carry the Adv_PQ_CCA term,
           # so we additionally assert that the ML-KEM IND-CCA assumption was actually invoked.
-          for f in formal/shield_combiner.cv formal/shield_kemdem.cv formal/shield_combiner_indcca.cv formal/shield_combiner_dh.cv; do
+          for f in formal/shield_combiner.cv formal/shield_kemdem.cv formal/shield_combiner_indcca.cv formal/shield_combiner_dh.cv formal/shield_ppk_combiner.cv; do
             echo "== cryptoverif -in oracles $f =="
             out="$(opam exec -- cryptoverif -in oracles "$f" 2>&1)"
             echo "$out" | grep -iE "RESULT|All queries|Error|cannot" | tail -8
