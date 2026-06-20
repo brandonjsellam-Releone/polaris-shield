@@ -1,0 +1,82 @@
+name: provenance
+# Supply-chain attestation for POLARIS Shield: deterministic verification bundle +
+# CycloneDX SBOM + cosign (keyless OIDC) signature + SLSA build-provenance attestation.
+# Runs on tagged releases and can be dispatched manually. Honest scope: this attests WHAT was
+# built and that it traces to this repo's OIDC identity — it is not a FIPS/CMVP validation.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write        # publish assets to the release
+  id-token: write        # keyless cosign + provenance need the OIDC token
+  attestations: write    # actions/attest-build-provenance
+
+jobs:
+  bundle-and-sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build deterministic verification bundle + SBOM baseline
+        run: |
+          python sbom/make_sbom.py
+          python release/make_bundle.py
+          echo "BUNDLE_DIGEST=$(python -c 'import json;print(json.load(open("release/RELEASE_MANIFEST.json"))["bundle_digest"])')" >> "$GITHUB_ENV"
+          # self-check: every listed file still hashes as recorded
+          sha256sum -c release/RELEASE_MANIFEST.sha256
+
+      - name: Full transitive SBOM (resolved environment)
+        run: |
+          python -m pip install --quiet -r requirements.txt cyclonedx-bom
+          cyclonedx-py environment --output-format json --outfile sbom/sbom.full.cdx.json || \
+            cyclonedx-py requirements requirements.txt --output-format json --outfile sbom/sbom.full.cdx.json
+
+      - name: Package the signed payloads
+        run: |
+          tar -czf polaris-shield-bundle.tar.gz \
+            polaris_shield formal acvp interop sidechannel \
+            *.md *.py kat_vectors.json requirements.txt pyproject.toml Dockerfile \
+            sbom release
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Cosign (keyless) sign the bundle manifest + SBOM
+        env:
+          COSIGN_YES: "true"
+        run: |
+          cosign sign-blob --yes \
+            --output-signature   polaris-shield-bundle.sig \
+            --output-certificate polaris-shield-bundle.pem \
+            release/RELEASE_MANIFEST.json
+          cosign sign-blob --yes \
+            --output-signature   sbom.cdx.sig \
+            --output-certificate sbom.cdx.pem \
+            sbom/sbom.cdx.json
+
+      - name: SLSA build-provenance attestation for the bundle
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: polaris-shield-bundle.tar.gz
+
+      - name: Publish verification assets to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            polaris-shield-bundle.tar.gz
+            release/RELEASE_MANIFEST.json
+            release/RELEASE_MANIFEST.sha256
+            polaris-shield-bundle.sig
+            polaris-shield-bundle.pem
+            sbom/sbom.cdx.json
+            sbom/sbom.full.cdx.json
+            sbom.cdx.sig
+            sbom.cdx.pem

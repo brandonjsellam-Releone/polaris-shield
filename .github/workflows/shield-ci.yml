@@ -1,0 +1,55 @@
+name: POLARIS Shield CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Types (mypy)
+        run: mypy polaris_shield
+      - name: Tests + KAT conformance (pytest)
+        run: pytest -q
+      - name: KAT vectors are reproducible
+        run: |
+          python gen_kat_vectors.py
+          git diff --exit-code kat_vectors.json
+      - name: Live demo (smoke)
+        run: python -m polaris_shield demo
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pip-audit
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip install -e .
+          pip-audit
+
+  # NOTE: the heavy formal-verification jobs (Verifpal/Tamarin/ProVerif/CryptoVerif) live in their
+  # own workflow (.github/workflows/formal.yml) with a narrow trigger, so routine changes get a fast
+  # signal here and only handshake/model changes re-run the (expensive) symbolic + computational proofs.

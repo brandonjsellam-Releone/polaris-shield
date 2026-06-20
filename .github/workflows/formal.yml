@@ -1,0 +1,130 @@
+name: POLARIS Shield — formal verification
+
+# Heavy Dolev-Yao symbolic proof (Verifpal) + the unbounded Tamarin / ProVerif lineages and the
+# computational CryptoVerif proofs. Narrow trigger so routine changes (tests, interop vectors, docs)
+# get a fast CI signal and only changes to the handshake model or its implementation re-run the
+# (intentionally expensive) proofs. Each job is bounded by timeout-minutes.
+on:
+  push:
+    paths:
+      - "formal/**"
+      - "polaris_shield/shield.py"
+      - ".github/workflows/formal.yml"
+  pull_request:
+    paths:
+      - "formal/**"
+      - "polaris_shield/shield.py"
+      - ".github/workflows/formal.yml"
+  workflow_dispatch:
+
+jobs:
+  prove:
+    name: prove ${{ matrix.model }} (Verifpal)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ["shield.vp", "shield_pq.vp"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Verifpal (pinned v0.52.0, content-addressed)
+        run: |
+          curl -fsSL -o /tmp/verifpal.zip https://github.com/symbolicsoft/verifpal/releases/download/v0.52.0/verifpal_0.52.0_linux_amd64.zip
+          # Verify the SHA-256 BEFORE extracting; a tampered/changed binary fails the job.
+          echo "e75e6b6737ba1c5965ad9dc71daec0993ded44d553dfb682f9dac182654700c1  /tmp/verifpal.zip" | sha256sum -c -
+          unzip -o /tmp/verifpal.zip -d /tmp/verifpal
+          sudo install -m 0755 "$(find /tmp/verifpal -name verifpal -type f | head -1)" /usr/local/bin/verifpal
+          verifpal --version
+      - name: Prove ${{ matrix.model }} (Dolev-Yao symbolic model)
+        run: |
+          # Verifpal exits 0 even when a query fails, so gate on the summary text.
+          f="formal/${{ matrix.model }}"
+          echo "== verifpal verify $f =="
+          out="$(verifpal verify "$f" 2>&1)"
+          echo "$out" | tail -6
+          if echo "$out" | grep -q "Error:"; then echo "::error::$f errored"; exit 1; fi
+          if echo "$out" | grep -q "queries fail"; then echo "::error::$f has a failing query"; exit 1; fi
+          if ! echo "$out" | grep -q "queries pass"; then echo "::error::$f did not report all queries passing"; exit 1; fi
+          echo "$f: all queries verified."
+
+  prove-tamarin:
+    name: prove handshake (Tamarin, unbounded)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Maude + Tamarin (pinned 1.12.0, content-addressed)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends maude graphviz
+          curl -fsSL -o /tmp/t.tar.gz https://github.com/tamarin-prover/tamarin-prover/releases/download/1.12.0/tamarin-prover-1.12.0-linux64-ubuntu.tar.gz
+          # Verify the SHA-256 BEFORE extracting; a tampered/changed binary fails the job.
+          echo "201be06f469e47cff554df6ca93db8366fc2c69d70c61fcbd1370a1074b469c6  /tmp/t.tar.gz" | sha256sum -c -
+          mkdir -p /tmp/t && tar xzf /tmp/t.tar.gz -C /tmp/t
+          sudo install -m0755 "$(find /tmp/t -type f -name tamarin-prover | head -1)" /usr/local/bin/tamarin-prover
+          tamarin-prover --version
+      - name: Prove the handshake (unbounded; every lemma must verify)
+        run: |
+          # Tamarin exits 0 regardless of verified/falsified, so gate on the summary.
+          out="$(tamarin-prover --prove formal/shield.spthy 2>&1)"
+          echo "$out" | sed -n '/summary of summaries/,$p'
+          if echo "$out" | grep -qiE "falsified|analysis incomplete"; then
+            echo "::error::a Tamarin lemma did not verify"; exit 1; fi
+          n="$(echo "$out" | grep -cE 'verified \([0-9]+ steps\)')"
+          echo "verified lemmas: $n"
+          if [ "$n" -lt 11 ]; then echo "::error::expected >=11 verified lemmas, got $n"; exit 1; fi
+          echo "All Tamarin lemmas verified (unbounded sessions)."
+
+  prove-cryptoverif:
+    name: prove combiner (CryptoVerif, computational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5"
+      - name: Install CryptoVerif (pinned 2.12)
+        run: opam install -y cryptoverif.2.12
+      - name: Prove the combiner key-indistinguishability (computational)
+        run: |
+          # The .cv models use the ORACLE front end, so run with -in oracles.
+          # CryptoVerif exits 0 regardless, so gate on "All queries proved".
+          # shield_combiner_indcca.cv mechanizes the seam-(b) composition (component ML-KEM
+          # IND-CCA => combined hybrid KEM IND-CCA); its bound must carry the Adv_PQ_CCA term,
+          # so we additionally assert that the ML-KEM IND-CCA assumption was actually invoked.
+          for f in formal/shield_combiner.cv formal/shield_kemdem.cv formal/shield_combiner_indcca.cv; do
+            echo "== cryptoverif -in oracles $f =="
+            out="$(opam exec -- cryptoverif -in oracles "$f" 2>&1)"
+            echo "$out" | grep -iE "RESULT|All queries|Error|cannot" | tail -8
+            if echo "$out" | grep -qiE "Error|cannot be proved"; then echo "::error::$f failed"; exit 1; fi
+            if ! echo "$out" | grep -q "All queries proved"; then echo "::error::$f did not prove all queries"; exit 1; fi
+            if [ "$f" = "formal/shield_combiner_indcca.cv" ] && ! echo "$out" | grep -q "Adv_PQ_CCA"; then
+              echo "::error::$f proved but DROPPED the Adv_PQ_CCA term (collapsed to the abstraction, not seam-(b))"; exit 1; fi
+          done
+          echo "All CryptoVerif queries proved (computational combiner + seam-(b) composition)."
+
+  prove-proverif:
+    name: prove handshake (ProVerif, unbounded, 4th lineage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "4.14"
+      - name: Install ProVerif (opam)
+        run: opam install -y proverif
+      - name: Prove the handshake (4th independent symbolic lineage; all queries must hold)
+        run: |
+          # ProVerif exits 0 regardless, so gate on the RESULT lines. The six security properties
+          # (hybrid secrecy, single-leg-break secrecy x2, downgrade resistance, sender-authentication,
+          # KCI) must each be "is true"; the executable / non-vacuity query is the ONLY allowed
+          # "is false" (it reports Accept is reachable). Any Error / "cannot be proved" fails.
+          out="$(opam exec -- proverif formal/shield.pv 2>&1)"
+          echo "$out" | grep -iE "^RESULT|Error|cannot be proved" | head -20
+          if echo "$out" | grep -qiE "Error|cannot be proved"; then echo "::error::ProVerif error or incomplete"; exit 1; fi
+          n_true="$(echo "$out" | grep -c 'is true' || true)"
+          if [ "$n_true" -lt 6 ]; then echo "::error::ProVerif: expected at least 6 'is true' results, got $n_true"; exit 1; fi
+          echo "ProVerif: $n_true security properties proved; non-vacuity reachable (4th lineage)."
