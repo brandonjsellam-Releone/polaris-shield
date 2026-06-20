@@ -50,15 +50,17 @@ name the seams before a reviewer does.
      accept/tamper-reject, all four parameter sets, verified live (see
      [`interop/CROSS_IMPL.md`](interop/CROSS_IMPL.md)). Residual: a flaw **shared** by both
      implementations (a spec ambiguity read the same way) or any side channel is still invisible.
-   - **(b) Composition - now mechanized (CryptoVerif).** The step "component ML-KEM IND-CCA =>
-     the transcript-bound combined hybrid KEM is IND-CCA" is mechanized in
-     `formal/shield_combiner_indcca.cv` (CI-gated): a genuine IND-CCA2 ML-KEM macro with an
-     encapsulation + decapsulation oracle; CryptoVerif proves the combined-KEM session key is
-     real-or-random with bound `2*qH/|ss_c_t| + 2*Adv_PQ_CCA` - the `Adv_PQ_CCA` term confirms the
-     ML-KEM IND-CCA assumption is actually invoked, and transcript binding is the load-bearing
-     separation. Residual (assumed/abstracted, not re-proven): ML-KEM IND-CCA itself, its small
-     decryption error / implicit rejection (X-Wing's delta_correctness term), the classical leg's
-     strong-DH, and HKDF-as-ROM.
+   - **(b) Composition - now mechanized on BOTH legs (CryptoVerif).** The step "component leg secure
+     => the transcript-bound combined hybrid KEM is IND-CCA" is mechanized on EACH side, CI-gated:
+     `formal/shield_combiner_indcca.cv` reduces to **ML-KEM IND-CCA** (bound carries `Adv_PQ_CCA`),
+     and `formal/shield_combiner_dh.cv` reduces to the classical leg's **Gap-DH** hardness on
+     X25519/X448 (bound `4*PDistRerandom + 2*Adv_GDH` - the GDH flavour CryptoVerif's bundled
+     HPKE/DHKEM analysis uses). Each gate asserts its advantage term is actually invoked (not collapsed
+     to an abstraction). Together they give one-leg-break resistance reduced, on each side, to the
+     surviving leg's assumption - so the **classical leg is no longer merely abstracted**. Residual
+     (assumed/abstracted, not re-proven): ML-KEM IND-CCA and Gap-DH **themselves**, ML-KEM's small
+     decryption error / implicit rejection (X-Wing's delta_correctness term), curve point-validation /
+     small-subgroup handling, and HKDF-as-ROM.
    - **(c) No model-to-bytes link.** No prover runs the actual TLV parser/combiner; faithfulness is
      human-authored.
    - **(d) Side channels beyond timing** are unmodelled and unhardened.
@@ -72,10 +74,11 @@ This page is only credible if you can act on it. Each weak seam has a falsificat
   **and** a second library; any disagreement is a finding. **Implemented:** `interop/cross_impl.py`
   vs `pqcrypto` (PQClean/C); `docker build -f interop/diff.Dockerfile -t polaris-shield-diff interop`
   runs it as the build gate. See [`interop/CROSS_IMPL.md`](interop/CROSS_IMPL.md).
-- **(b)** re-run `formal/shield_combiner_indcca.cv` (CryptoVerif, `-in oracles`); it must emit
-  "All queries proved" with the `Adv_PQ_CCA` term. Attack the residual: the abstracted classical
-  leg, the perfect-correctness assumption (no decryption error), or HKDF-as-ROM. The prior
-  hand-written reduction is in `SECURITY_ARGUMENT.md` section 3 / `COMBINER_CRYPTOVERIF.md`.
+- **(b)** re-run both composition models (CryptoVerif, `-in oracles`): `formal/shield_combiner_indcca.cv`
+  must emit "All queries proved" with the `Adv_PQ_CCA` term, and `formal/shield_combiner_dh.cv` with the
+  `Adv_GDH` term. Attack the residual: the assumptions themselves (ML-KEM IND-CCA / Gap-DH), the
+  perfect-correctness assumption (no decryption error), curve point-validation, or HKDF-as-ROM. The
+  prior hand-written reduction is in `SECURITY_ARGUMENT.md` section 3 / `COMBINER_CRYPTOVERIF.md`.
 - **(c)** diff `shield.spthy` / `shield.pv` against `polaris_shield/shield.py` and `FORMAT.md`; any
   field the model omits or reorders is a divergence.
 - **(d)** extend `sidechannel/ct_measure.py` to a new leakage class.

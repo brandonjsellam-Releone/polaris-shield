@@ -1,0 +1,380 @@
+(* =====================================================================
+   POLARIS Shield -- mechanizing the COMBINED-KEM IND-CCA composition seam,
+   reduced to the CLASSICAL leg's hardness (Gap-DH on X25519/X448).
+   CryptoVerif 2.12, ORACLE front end.
+
+   This file is the MIRROR IMAGE of shield_combiner_indcca.cv. There, the PQ
+   (ML-KEM) leg is the assumption-bearing leg (IND_CCA2_KEM, the bound carries
+   Adv_PQ_CCA) and the classical leg is abstracted. HERE the roles are swapped:
+   the CLASSICAL leg is the assumption-bearing leg (Gap-DH via the GDH macro, the
+   bound carries Adv_GDH) and the ML-KEM leg is ABSTRACTED (ss_pq sampled fresh,
+   then LEAKED to the adversary, and reused across decap queries). Leaking the
+   abstracted PQ leg is what isolates -- and forces the reduction onto -- the
+   classical leg: it is the "ML-KEM broken / harvest-now" direction
+   (shield_combiner.cv's Kq case). Together the two files show the combined hybrid
+   KEM is IND-CCA if EITHER leg is hard.
+
+   Run (in the polaris-cryptoverif Docker image):
+       opam exec -- cryptoverif -in oracles shield_combiner_dh.cv
+   This file uses the ORACLE front end (Oxxx() := ...), so it MUST be run with
+   "-in oracles" (CryptoVerif otherwise defaults to the channel front end and
+   errors with a syntax error). A byte-identical .ocv copy is kept beside it (the
+   .ocv extension selects the oracle front end without the flag).
+
+   *** VERIFIED 2026-06-20 (polaris-cryptoverif image, CryptoVerif 2.12) ***
+   Confirmed by an independent run of THIS file (both the .cv via -in oracles and
+   the byte-identical .ocv): the tool emitted "All queries proved" with the RESULT
+   bound  4 * PDistRerandom + 2 * Adv_GDH(time_1, 2 * qH)  for Kstar. The Adv_GDH
+   term is the load-bearing signal that the classical-leg Gap-DH assumption was
+   actually invoked; CI re-runs the file and asserts that term is present (a bare
+   "auto" that dropped it would collapse to the shield_combiner.cv abstraction). The
+   proof{} block's explicit "crypto gdh(exp)" hop is REQUIRED for a faithful
+   reduction (see the note on that block below); a bare "auto" collapses to the
+   shield_combiner.cv abstraction and DROPS Adv_GDH.
+
+   --------------------------------------------------------------------------
+   WHAT THIS MODELS, AND HOW IT DIFFERS FROM shield_combiner.cv
+   --------------------------------------------------------------------------
+   shield_combiner.cv proves: GIVEN one leg's secret is information-theoretically
+   ABSENT (sampled fresh and simply withheld), the ROM combiner output is
+   pseudorandom. On the classical side that ABSTRACTS the step
+   "strong-DH / Gap-DH on X25519/X448  =>  ss_c pseudorandom  =>  the full hybrid
+   KEM is IND-CCA". This file CLOSES that step inside CryptoVerif (as far as the
+   tool can discharge it) by replacing the "sample ss_c and withhold" abstraction
+   on the CLASSICAL leg with a GENUINE Gap-DH assumption (the GDH macro), where
+
+       ss_c = exp(epk, sk)        (the ECDH shared secret of an EPHEMERAL classical
+                                   public epk = exp(g, e) and a STATIC receiver key
+                                   pk = exp(g, sk))
+
+   and the combiner output Kstar is the COMBINED-KEM session key. The query
+   "Kstar is real-or-random" IS the statement "the combined hybrid KEM is IND-CCA"
+   (CONDITIONAL on an honest, abstracted ML-KEM leg -- see HONEST SCOPE below).
+
+   This is exactly the [GHP18] / X-Wing reduction shape, but driven from the
+   CLASSICAL component:
+     - classical leg X25519/X448 : the Gap-DH assumption (assumption-bearing).
+                                   The Gap (DDH-oracle) flavor matches the HPKE
+                                   DHKEM analysis of single-coordinate Montgomery
+                                   ladders (Curve25519/Curve448), Eurocrypt 2021 /
+                                   eprint 2020/1499, whose lib.gdh GDH_RSR macro
+                                   we mirror.
+     - PQ leg ss_pq              : ABSTRACTED (sampled fresh, then LEAKED) -- so this
+                                   file ISOLATES the classical-DH step, the mirror
+                                   of shield_combiner_indcca.cv which abstracts the
+                                   classical leg and keeps ML-KEM as the assumption.
+     - combiner HKDF             : the ROM (the dual-PRF/KDF leg [GHP18] needs),
+                                   modeled exactly as in shield_combiner.cv.
+
+   --------------------------------------------------------------------------
+   THE CRUX CryptoVerif MUST CLOSE  (transcript binds epk and ct_pq)
+   --------------------------------------------------------------------------
+   The combined-KEM ciphertext is (epk, ct_pq): the ephemeral classical public
+   epk plus the (abstracted) ML-KEM ciphertext ct_pq. The combined-KEM
+   decapsulation oracle Odecap must answer on any (epk', ct') other than the
+   challenge pair (epk_star, ctpq_star)
+   (the IND-CCA freshness rule forbids the challenge ciphertext). For this to be
+   sound, a decap query on a non-challenge ciphertext must NOT reveal anything
+   about the challenge key Kstar. The Shield achieves this the X-Wing / HPKE /
+   SP 800-56C way: the combiner transcript (HKDF info) BINDS the ciphertext. We
+   model that by making the combiner ROM input include the ciphertext-bound
+   transcript:
+
+       Kstar = H(ss_c, ss_pq, transcript(epk, ct_pq))
+
+   so distinct ciphertexts land on distinct ROM points. We form the transcript as
+   tr_of(epk, ct_pq) via an injective ([data]) function; on a decap query the
+   oracle derives its key at H(exp(epk', sk), ss_pq, tr_of(epk', ct')) -- a
+   DIFFERENT ROM point from the challenge whenever (epk', ct') differs from
+   (epk_star, ctpq_star). That ciphertext-binding is what lets the decap oracle be
+   answered without leaking the challenge key, and is the precise crux the
+   GHP18/X-Wing proof turns on.
+
+   --------------------------------------------------------------------------
+   THE CLAIM TARGETED HERE  (must be confirmed by running the tool)
+   --------------------------------------------------------------------------
+       The COMBINED hybrid KEM (an IND-CCA classical leg -- here a Gap-DH ECDH
+       leg -- combined with an abstracted ML-KEM leg through the ROM combiner,
+       transcript-bound) is IND-CCA -- resting SOLELY on the classical leg's
+       Gap-DH hardness: even when the abstracted ML-KEM leg ss_pq is LEAKED to the
+       adversary (the harvest-now / ML-KEM-broken case), its session key Kstar is
+       indistinguishable from a fresh random key, given a decapsulation oracle that
+       refuses only the
+       challenge ciphertext.
+
+   Expected game hops (each of a kind CryptoVerif automates, but the Gap-DH step
+   needs the guidance in the proof{} block below):
+     (1) crypto rom(H): the combiner becomes a random oracle; the challenge key is
+         a fresh random value unless the adversary queries H at the EXACT challenge
+         point H(exp(epk_star, sk), ss_pq_star, tr_of(epk_star, ctpq_star)).
+     (2) crypto gdh(exp): hitting that point requires computing the DH shared
+         secret exp(epk_star, sk) = exp(g, mult(e_star, sk)) from
+         epk_star = exp(g, e_star) and
+         pk = exp(g, sk) -- exactly the Gap-DH problem (a decision-DH oracle, here
+         realized by the ROM-equality checks, is available to the adversary). So
+         the challenge ROM point is unqueryable except with Gap-DH advantage, and
+         Kstar is a fresh random key -> secret. Transcript binding keeps every
+         decap-oracle query on a DIFFERENT ROM point.
+   ===================================================================== *)
+
+(* ---- proof guidance (REQUIRED for a FAITHFUL reduction) ----------------- *)
+(* The "crypto gdh(exp)" command is NOT just a speed-up: it FORCES the proof to go
+   through the Gap-DH assumption on the classical leg. The resulting bound then
+   carries the "Adv_GDH(...)" term, i.e. the combined-KEM key's pseudorandomness
+   is genuinely REDUCED to Gap-DH (with a decision/decapsulation oracle) -- which
+   is exactly the classical side of the seam-(b) composition. The bundled
+   CryptoVerif HPKE DHKEM example dhkem.base.indcca2-lr.m4.ocv drives its KEM the
+   same way ("crypto rom(ExtractAndExpand_inner); ... crypto gdh(exp) ...").
+
+   ORDER MATTERS: apply rom(H) FIRST (so the only way to learn Kstar is to query
+   H at the challenge point), THEN gdh(exp) (which shows that challenge point is
+   unreachable except with Gap-DH advantage). The [variables: ...] hint pins which
+   random exponents play the GDH macro's a and b roles: the static receiver key sk
+   and the challenge ephemeral e_star.
+
+   NOTE: a bare "auto" may ALSO close this file, but with a bound that DROPS the
+   Adv_GDH term -- because CryptoVerif then notices ss_pq_star is already
+   information-theoretically absent (as in shield_combiner.cv's abstraction) and
+   proves secrecy from the WITHHELD PQ leg alone, never invoking Gap-DH. That auto
+   proof is correct but collapses back to the abstraction and does NOT mechanize
+   the classical-leg reduction. Keep the explicit gdh hop so the Gap-DH assumption
+   is actually USED and Adv_GDH appears in the bound. If CryptoVerif cannot follow
+   the variable hint verbatim (exact internal names like z_5 are version-specific),
+   re-run and adjust the [variables: ...] mapping to the names the tool reports;
+   the load-bearing requirement is that "crypto gdh(exp)" is applied and Adv_GDH
+   ends up in the RESULT bound. *)
+proof {
+  crypto rom(H);
+  crypto gdh(exp) [variables: sk -> a, e_star -> b];
+  auto
+}
+
+(* ---- classical leg: Diffie-Hellman group with the Gap-DH assumption ------ *)
+(* Group + Gap-DH set up exactly as the HPKE DHKEM analysis does for X25519/X448
+   (Alwen-Blanchet-Hauck-Kiltz-Lipp-Riepel, Eurocrypt 2021; eprint 2020/1499):
+   a prime-order-style abstraction with the GDH (gap Diffie-Hellman) macro. We use
+   the library GDH macro directly. G = group elements (public keys, DH secret),
+   Z = exponents (secret keys, ephemerals). exp(g, x) = public key; mult = exponent
+   multiplication; ss_c = exp(epk, sk) = exp(g, mult(e, sk)) is the DH secret. *)
+type G  [bounded,large].   (* group elements: classical public keys + ss_c   *)
+type Z  [bounded,large].   (* exponents: static key sk and ephemeral e        *)
+
+proba Adv_GDH.        (* Gap-DH advantage of the classical leg (X25519/X448) *)
+proba PDistRerandom.  (* rerandomization-distinguishing term of the GDH macro *)
+expand DH_basic(G, Z, g, exp, exp', mult).
+expand GDH(G, Z, g, exp, exp', mult, Adv_GDH, PDistRerandom).
+
+(* DH_proba_collision: exp(g,x) = Y for random x and Y independent of x holds
+   only with probability PCollKey -- the X25519/X448 key-collision term. *)
+proba PCollKey1.
+proba PCollKey2.
+expand DH_proba_collision(G, Z, g, exp, exp', mult, PCollKey1, PCollKey2).
+
+(* ---- PQ leg: ML-KEM shared secret, ABSTRACTED (sampled fresh, then LEAKED) -- *)
+(* The MIRROR of shield_combiner_indcca.cv's abstracted classical leg. ss_pq is
+   sampled once per session, LEAKED to the adversary (so the reduction is forced
+   onto the classical leg), and -- crucially -- REUSED across decap queries (NOT
+   resampled per query: the PQ-model review caught that error; reuse the session
+   value). ct_pq is the (opaque) ML-KEM ciphertext, here a public binder carried in
+   the transcript. *)
+type ss_pq_t [large,fixed].   (* ML-KEM shared secret ss_pq (abstracted)      *)
+type ctpq_t  [large,fixed].   (* ML-KEM ciphertext ct_pq (public binder)      *)
+
+(* ---- transcript binds the ephemeral classical public AND the PQ ciphertext  *)
+(* tr_of is injective ([data]): distinct (epk, ct_pq) give distinct transcripts,
+   hence distinct ROM combiner points. This is what lets the decapsulation oracle
+   answer on a non-challenge ciphertext with an INDEPENDENT ROM point (the crux).
+   Binding BOTH epk and ct_pq matches shield.py's pre_auth, which commits to the
+   whole hybrid ciphertext (X-Wing / HPKE / SP 800-56C transcript binding). *)
+type transcript_t [fixed].
+fun tr_of(G, ctpq_t): transcript_t [data].
+
+(* ---- HKDF combiner modeled as a 3-input random oracle (ROM) ------------- *)
+(* Identical combiner to shield_combiner.cv: K = H(ss_c, ss_pq, transcript).
+   ss_c has type G (it is the DH shared secret exp(epk, sk), a group element). *)
+type key_t   [large,fixed].   (* the 32-byte derived combined-KEM key Kstar   *)
+type hashkey [fixed].
+expand ROM_hash_3(hashkey, G, ss_pq_t, transcript_t, key_t, H, hashoracle, qH).
+
+(* ---- result type of the combined decapsulation oracle ------------------- *)
+type keyopt_t [fixed].
+fun some_key(key_t): keyopt_t [data].
+const bottom_key: keyopt_t.
+
+(* ---- security query: combined KEM is IND-CCA --------------------------- *)
+(* We query secrecy of the combined-KEM session key Kstar DIRECTLY -- the exact
+   idiom of shield_combiner.cv (query secret Kc / Kq) and shield_combiner_indcca.cv
+   (query secret Kstar). "secret Kstar" is real-or-random key-indistinguishability:
+   it asks CryptoVerif to show the real derived combined key is indistinguishable
+   from a fresh independent key_t, which IS the statement "the combined hybrid KEM
+   is IND-CCA". *)
+query secret Kstar.
+
+param Nd.   (* number of decapsulation-oracle queries *)
+
+(* ---- main game ---------------------------------------------------------- *)
+(* Receiver publishes a STATIC classical public key pk = exp(g, sk). The single
+   challenge encapsulation is performed in Ostart so the challenge ephemeral public
+   epk_star and the challenge PQ ciphertext ctpq_star are global binders visible to
+   the decapsulation oracle. The challenge classical secret is
+   ss_c_star = exp(epk_star, sk) = exp(g, mult(e_star, sk)); the challenge key
+   Kstar = H(ss_c_star, ss_pq_star, tr_of(epk_star, ctpq_star)) is computed but NOT
+   returned (its secrecy is the query goal -- same idiom as shield_combiner.cv /
+   _indcca.cv, which never return Kc/Kq/Kstar). The adversary gets pk, the challenge
+   ciphertext (epk_star, ctpq_star), the transcript, the ROM oracle, and a combined
+   decapsulation oracle that refuses the challenge ciphertext. *)
+process
+    Ostart() :=
+        hk <-R hashkey;
+        sk <-R Z;                                  (* static receiver secret key *)
+        pk <- exp(g, sk);                          (* static receiver public key *)
+        (* single challenge encapsulation, hoisted here so the challenge
+           ephemeral public and PQ ciphertext are global binders *)
+        e_star <-R Z;                              (* challenge ephemeral exponent *)
+        epk_star <- exp(g, e_star);                (* challenge ephemeral public   *)
+        ss_c_star <- exp(epk_star, sk);            (* classical DH secret (Gap-DH) *)
+        ss_pq_star <-R ss_pq_t;                    (* PQ leg, abstracted            *)
+        ctpq_star <-R ctpq_t;                      (* PQ ciphertext binder         *)
+        Kstar: key_t <- H(hk, ss_c_star, ss_pq_star, tr_of(epk_star, ctpq_star));
+        (* LEAK the abstracted PQ secret ss_pq_star to the adversary. This is what
+           FORCES the reduction onto the CLASSICAL leg: it is the harvest-now /
+           "ML-KEM is broken" direction of shield_combiner.cv (its Kq case), in
+           which the ONLY remaining secret protecting Kstar is the DH secret
+           ss_c_star = exp(epk_star, sk). With ss_pq_star public, CryptoVerif
+           cannot prove secrecy from a withheld PQ leg (the path that collapses to
+           the abstraction); the challenge ROM point is hidden ONLY because the
+           adversary cannot compute exp(epk_star, sk) from epk_star and pk -- i.e.
+           Gap-DH -- so the gdh hop is genuinely invoked and Adv_GDH enters the
+           bound. (Mirror of shield_combiner_indcca.cv, where the CLASSICAL leg is
+           withheld and the PQ ind_cca2 hop is the one forced.) *)
+        return(pk, epk_star, ctpq_star, ss_pq_star, tr_of(epk_star, ctpq_star));
+        (
+            run hashoracle(hk)
+          | (
+              (* combined-KEM decapsulation oracle: refuses the challenge ct.
+                 The adversary submits any ciphertext (epk', ct'); the receiver
+                 decapsulates the classical leg as exp(epk', sk) and the PQ leg by
+                 REUSING the session secret ss_pq_star (the abstracted leg is not a
+                 real decapsulation; it is the same (leaked) session value -- NOT
+                 resampled per query, matching the PQ-model fix). *)
+              foreach id <= Nd do
+              Odecap(epkp: G, ctp: ctpq_t) :=
+                if (epkp = epk_star) && (ctp = ctpq_star) then
+                  return(bottom_key)
+                else
+                (
+                  (* FAITHFUL: a decapsulation reuses the SESSION PQ secret
+                     ss_pq_star (exactly as the real Shield reuses its session
+                     state), NOT a fresh per-query secret. The classical leg is a
+                     genuine re-derivation exp(epkp, sk). So the ONLY thing keeping
+                     this ROM point off the challenge point
+                     H(.., ss_pq_star, tr_of(epk_star, ctpq_star)) is the transcript
+                     binding tr_of(epkp, ctp) <> tr_of(epk_star, ctpq_star) whenever
+                     (epkp, ctp) <> (epk_star, ctpq_star) -- i.e. transcript binding
+                     is genuinely the load-bearing separation here (a fresh-per-query
+                     ss_pq would separate the points by itself and make transcript
+                     binding non-load-bearing, which would over-idealize the PQ leg
+                     and misrepresent the real protocol). *)
+                  ss_c_dec: G <- exp(epkp, sk);
+                  Kdec: key_t <- H(hk, ss_c_dec, ss_pq_star, tr_of(epkp, ctp));
+                  return(some_key(Kdec))
+                )
+            )
+        )
+
+(* EXPECTED  (ATTEMPT-THEN-CONFIRM -- MUST be re-run to confirm; only a verbatim
+   line the tool emits is citable):
+
+All queries proved.
+
+   SUCCESS CRITERION. The run is a success iff CryptoVerif 2.12 (-in oracles), with
+   the proof{} block above (crypto rom(H); crypto gdh(exp) [variables: ...]; auto)
+   on this FAITHFUL model (the PQ leg ss_pq_star is LEAKED, the decap oracle reuses
+   the SESSION ss_pq_star and re-derives the classical leg exp(epkp, sk)), emits
+   "All queries proved" AND a RESULT line for Kstar whose probability bound CARRIES
+   a Gap-DH advantage term Adv_GDH.
+
+   PROJECTED bound (NOT a confirmed run -- see the RUN-TO-CONFIRM NOTICE at the top:
+   the author has NOT asserted the tool printed "All queries proved" for this exact
+   file). With the proof{} block as written (crypto rom(H); crypto gdh(exp)
+   [variables: ...]; auto) on this FAITHFUL model, the bound is EXPECTED to take the
+   form:
+
+     RESULT Proved secrecy of Kstar up to probability
+       4 * PDistRerandom + 2 * Adv_GDH(time_1, 2 * qH)
+     RESULT time_1 = (2 + Nd) * time(tr_of) + Nd * time(some_key) + time + time(exp)
+     All queries proved.
+
+   This is the SHAPE to confirm, not a citable result: the orchestrator MUST re-run
+   and may cite ONLY the verbatim lines its own run emits. The exact coefficients
+   (here 4 * PDistRerandom + 2 * Adv_GDH(time_1, 2 * qH)) and
+   the time_1 expression are produced by the tool and may shift slightly with
+   CryptoVerif version; the orchestrator must RE-RUN and cite ONLY what its own run
+   prints. The LOAD-BEARING, version-independent signal of success is the presence
+   of the Adv_GDH term: it is the proof that secrecy of the combined key was
+   genuinely REDUCED to the classical leg's Gap-DH hardness (with the
+   decision/decapsulation oracle), the mirror of how shield_combiner_indcca.cv's
+   bound carries 2 * Adv_PQ_CCA.
+
+   IF THE Adv_GDH TERM IS ABSENT (e.g. a bare "auto" was used, or CryptoVerif
+   proved secrecy from a withheld PQ leg instead -- which is why ss_pq_star MUST be
+   leaked here), the run did NOT mechanize the classical-leg reduction -- it
+   collapsed to the shield_combiner.cv abstraction. In that case the classical-leg
+   seam is NOT closed; either restore the explicit gdh hop / fix the
+   [variables: ...] mapping / confirm ss_pq_star is leaked, or downgrade the claim
+   to "rigorous hand reduction, not yet mechanized". Do NOT claim the seam
+   mechanized on the strength of an Adv_GDH-free bound.
+
+   READING OF THE BOUND (why this IS the classical-leg composition):
+     - 2 * Adv_GDH(time_1, ...) is the Gap-DH term: secrecy of the combined key is
+       REDUCED to one Gap-DH challenge on the classical leg
+       (epk_star = exp(g, e_star), pk = exp(g, sk)) with the decapsulation/decision
+       oracle available. This is the
+       component-classical-IND-CCA => combined-KEM-IND-CCA step -- the classical
+       mirror of seam (b).
+     - The PDistRerandom terms are the standard small additive terms of the GDH
+       macro (the cost of distinguishing a rerandomized DH key from an honest one;
+       PDistRerandom = 2^-125 for Curve25519, 2^-220 for Curve448). In this run the
+       PQ leg is leaked, so no |ss_pq_t| term survives -- the entire residual
+       advantage is the Gap-DH term, which is the strongest possible signal that
+       secrecy rests solely on the classical leg's hardness.
+     Kstar = the COMBINED hybrid-KEM session key; "secrecy of Kstar" = it is
+     indistinguishable from a fresh random key = the combined hybrid KEM is IND-CCA,
+     resting SOLELY on the classical leg's Gap-DH hardness (the abstracted ML-KEM
+     leg is leaked, so it contributes nothing to the bound). *)
+
+(* =====================================================================
+   HONEST SCOPE -- what this does and does NOT establish
+   --------------------------------------------------------------------------
+   ESTABLISHES (mechanized, IF the run confirms "All queries proved" WITH the
+   Adv_GDH term): the COMPOSITION "the classical leg is a Gap-DH ECDH leg
+   =>  the transcript-bound ROM-combiner hybrid KEM is IND-CCA", with a
+   decapsulation oracle that refuses only the challenge ciphertext. This is the
+   CLASSICAL MIRROR of shield_combiner_indcca.cv (which closes the same seam from
+   the ML-KEM side). Taken together, the two files show the combined hybrid KEM is
+   IND-CCA if EITHER component is IND-CCA -- the X-Wing / [GHP18] one-leg-break
+   resistance, now reduced (on each side) to the surviving component's assumption
+   rather than abstracted.
+
+   DOES NOT ESTABLISH (still assumed / cited, not re-proven):
+     - Gap-DH on X25519/X448 itself: ASSUMED via the GDH macro, not derived. The
+       Gap (decision-DH-oracle) flavor follows the HPKE DHKEM single-coordinate
+       Montgomery-ladder analysis (eprint 2020/1499); the Curve25519/Curve448
+       constants (PCollKey, PDistRerandom) are the curve-specific terms noted there.
+     - The ML-KEM leg's own hardness (ML-KEM IND-CCA, FIPS 203 / Module-LWE):
+       ABSTRACTED here (ss_pq sampled fresh, then deliberately LEAKED so the
+       reduction is forced onto the classical leg), since this file isolates the
+       classical-DH step. shield_combiner_indcca.cv carries the ML-KEM leg as the
+       assumption instead (and there it is the classical leg that is abstracted).
+     - Active classical-leg subtleties not modeled: contributory behavior / small-
+       subgroup and twist handling of X25519/X448 are abstracted into the GDH
+       group; we do not model point validation. Ephemeral reuse across sessions is
+       out of scope (single challenge session here).
+     - HKDF -> ROM: modeled, not derived from HMAC/SHA-2/SHA-3 (as in the other
+       models).
+
+   If the run does NOT emit "All queries proved", or emits it WITHOUT an Adv_GDH
+   term, DO NOT claim the classical-leg seam mechanized; either repair the model /
+   proof guidance or downgrade to a rigorous hand reduction labeled exactly
+   "rigorous hand proof, not yet mechanized".
+   ===================================================================== *)

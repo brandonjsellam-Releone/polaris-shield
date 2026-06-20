@@ -94,7 +94,7 @@ jobs:
           # shield_combiner_indcca.cv mechanizes the seam-(b) composition (component ML-KEM
           # IND-CCA => combined hybrid KEM IND-CCA); its bound must carry the Adv_PQ_CCA term,
           # so we additionally assert that the ML-KEM IND-CCA assumption was actually invoked.
-          for f in formal/shield_combiner.cv formal/shield_kemdem.cv formal/shield_combiner_indcca.cv; do
+          for f in formal/shield_combiner.cv formal/shield_kemdem.cv formal/shield_combiner_indcca.cv formal/shield_combiner_dh.cv; do
             echo "== cryptoverif -in oracles $f =="
             out="$(opam exec -- cryptoverif -in oracles "$f" 2>&1)"
             echo "$out" | grep -iE "RESULT|All queries|Error|cannot" | tail -8
@@ -102,8 +102,10 @@ jobs:
             if ! echo "$out" | grep -q "All queries proved"; then echo "::error::$f did not prove all queries"; exit 1; fi
             if [ "$f" = "formal/shield_combiner_indcca.cv" ] && ! echo "$out" | grep -q "Adv_PQ_CCA"; then
               echo "::error::$f proved but DROPPED the Adv_PQ_CCA term (collapsed to the abstraction, not seam-(b))"; exit 1; fi
+            if [ "$f" = "formal/shield_combiner_dh.cv" ] && ! echo "$out" | grep -q "Adv_GDH"; then
+              echo "::error::$f proved but DROPPED the Adv_GDH term (classical-leg seam not mechanized)"; exit 1; fi
           done
-          echo "All CryptoVerif queries proved (computational combiner + seam-(b) composition)."
+          echo "All CryptoVerif queries proved (combiner + seam-(b) BOTH legs: ML-KEM IND-CCA + Gap-DH)."
 
   prove-proverif:
     name: prove handshake (ProVerif, unbounded, 4th lineage)
