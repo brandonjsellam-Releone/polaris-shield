@@ -1,5 +1,9 @@
 # POLARIS Shield v2 — post-quantum hybrid security (reference)
 
+[![CI](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/shield-ci.yml/badge.svg)](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/shield-ci.yml)
+[![formal verification](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/formal.yml/badge.svg)](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/formal.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 The **POLARIS Shield** is the real, runnable form of the BOREALIS / POLARIS **L9 layer**
 (the "post-quantum root of trust"). It is an **algorithm-agile** hybrid (classical +
 post-quantum) cryptosystem on the finalized NIST standards, with a self-describing,
