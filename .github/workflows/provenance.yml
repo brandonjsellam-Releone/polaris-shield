@@ -34,9 +34,9 @@ jobs:
 
       - name: Full transitive SBOM (resolved environment)
         run: |
-          python -m pip install --quiet -r requirements.txt cyclonedx-bom
-          cyclonedx-py environment --output-format json --outfile sbom/sbom.full.cdx.json || \
-            cyclonedx-py requirements requirements.txt --output-format json --outfile sbom/sbom.full.cdx.json
+          python -m pip install --quiet -r requirements.txt cyclonedx-bom==7.3.0
+          cyclonedx-py environment --output-format JSON -o sbom/sbom.full.cdx.json || \
+            cyclonedx-py requirements --output-format JSON -o sbom/sbom.full.cdx.json requirements.txt
 
       - name: Package the signed payloads
         run: |
