@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: Apache-2.0
+// POLARIS Shield v2 — authenticated HYBRID handshake, symbolic (Dolev-Yao) model.
+//
+// Mirrors tech/polaris_shield/shield.py: a recipient with a STATIC hybrid identity
+// (classical X-DH + ML-KEM), a sender that contributes an ephemeral X-DH leg and an
+// ML-KEM encapsulation, an SP 800-56C-shaped combiner (HKDF over length-framed
+// ss_classical || ss_pq, with the suite_id + full transcript in info), a SIGMA-style
+// ML-DSA signature over the transcript + the signer's OWN key-id verified BEFORE
+// decapsulation, and AEAD over the whole header.
+//
+// THIS FILE proves the headline property: confidentiality survives a future
+// cryptographically-relevant quantum computer (CRQC) that breaks the CLASSICAL leg
+// (harvest-now, decrypt-later) — modeled by leaking the recipient's classical key in a
+// later phase — because the ML-KEM leg still seals the key. shield_pq.vp proves the
+// symmetric case (a hypothetical ML-KEM break with the classical leg intact).
+//
+// Scope: SYMBOLIC (Dolev-Yao), not computational. Primitives are idealized (ML-KEM
+// IND-CCA and ML-DSA EUF-CMA are assumed sound; PKE_ENC models KEM encapsulation).
+// Timing / side-channels / FIPS validation are OUT OF SCOPE (see SECURITY.md). See
+// tech/formal/README.md for claim-by-claim traceability to shield.py and THREAT_MODEL.md.
+// (CONCAT is limited to 5 inputs, so the transcript/header are staged in 4-field chunks
+// constructed identically by sender and recipient.)
+
+attacker[active]
+
+principal Bob[
+	knows private xb                       // recipient classical X-DH private leg
+	xb_pub = G^xb
+	knows private kb                       // ML-KEM decapsulation key (PKE models the KEM)
+	ekb = G^kb                             // ML-KEM encapsulation key (public)
+	knows public suite_id, flags, salt, label, auth_ctx, magic, ver
+	rkid = HASH(ekb)                       // recipient key-id. MODEL SIMPLIFICATION: this binds
+	                                       // only the ML-KEM key (ekb); the real code + the Tamarin
+	                                       // model derive the SHAKE-256 key-id over BOTH the classical
+	                                       // pub AND the KEM key bundle.
+]
+
+principal Alice[
+	knows private sa                       // sender ML-DSA signing key
+	sa_pub = G^sa
+	knows public suite_id, flags, salt, label, auth_ctx, magic, ver
+]
+
+// Authentic distribution of the public identities: the active attacker may READ these
+// but not forge them (the recipient bundle is published; Bob pins Alice's signing key).
+Bob   -> Alice: [xb_pub], [ekb], [rkid]
+Alice -> Bob:   [sa_pub]
+
+principal Alice[
+	generates e
+	eph_pub = G^e
+	ssc = xb_pub^e                         // classical ECDH leg: G^(xb*e)
+	generates m_pq                         // ML-KEM encaps randomness == ss_pq
+	kem_ct = PKE_ENC(ekb, m_pq)
+	generates nonce
+	// transcript (suite_id||flags||rkid||eph_pub||kem_ct||nonce), staged in <=5-input chunks
+	pa_head = CONCAT(suite_id, flags, rkid)
+	pre_auth = CONCAT(pa_head, eph_pub, kem_ct, nonce)
+	sender_kid = HASH(sa_pub)
+	sig = SIGN(sa, CONCAT(auth_ctx, pre_auth, sender_kid))   // SIGMA: signs OWN identity
+	sender_block = CONCAT(sender_kid, sa_pub, sig)
+	// SP 800-56C combiner: HKDF over length-framed (ssc || sspq); suite_id+transcript in info
+	key = HKDF(salt, CONCAT(ssc, m_pq), CONCAT(label, suite_id, pre_auth))
+	hdr1 = CONCAT(magic, ver, suite_id, flags)
+	hdr2 = CONCAT(rkid, eph_pub, kem_ct, nonce)
+	header = CONCAT(hdr1, hdr2, sender_block)
+	generates plaintext
+	ct = AEAD_ENC(key, plaintext, header)
+]
+
+Alice -> Bob: eph_pub, kem_ct, nonce, sig, ct
+
+principal Bob[
+	bob_sender_kid = HASH(sa_pub)
+	bob_pa_head = CONCAT(suite_id, flags, rkid)
+	bob_pre_auth = CONCAT(bob_pa_head, eph_pub, kem_ct, nonce)
+	// verify the sender signature (full transcript + signer key-id) BEFORE decapsulation
+	sig_ok = SIGNVERIF(sa_pub, CONCAT(auth_ctx, bob_pre_auth, bob_sender_kid), sig)?
+	bob_sender_block = CONCAT(bob_sender_kid, sa_pub, sig)
+	ssc_b = eph_pub^xb                     // classical ECDH leg recomputed
+	sspq_b = PKE_DEC(kb, kem_ct)           // ML-KEM decapsulation
+	key_b = HKDF(salt, CONCAT(ssc_b, sspq_b), CONCAT(label, suite_id, bob_pre_auth))
+	bob_hdr1 = CONCAT(magic, ver, suite_id, flags)
+	bob_hdr2 = CONCAT(rkid, eph_pub, kem_ct, nonce)
+	header_b = CONCAT(bob_hdr1, bob_hdr2, bob_sender_block)
+	pt = AEAD_DEC(key_b, ct, header_b)?
+]
+
+// CRQC: AFTER the session the classical leg is broken (recipient classical key leaks).
+// Confidentiality must STILL hold because the ML-KEM leg (kb) is intact.
+phase[1]
+principal Bob[leaks xb]
+
+queries[
+	// Headline: plaintext stays secret even after the classical leg is broken by a CRQC
+	// (the ML-KEM leg seals the key) -> harvest-now-decrypt-later defeated, hybrid soundness.
+	confidentiality? plaintext
+	// Sender authenticity + integrity: the message Bob decrypts was authored by Alice; a
+	// forged or tampered envelope is rejected (covers transcript-binding, no-downgrade,
+	// no-UKS — all bound into the signed pre_auth and the AEAD AAD).
+	authentication? Alice -> Bob: ct
+]
+// NON-property (documented, by design): replay protection is NOT claimed. The one-pass
+// envelope is replayable — an active attacker can RELAY Alice's genuine signed envelope to
+// Bob unchanged and Bob accepts it (no anti-replay state). Verifpal makes this concrete:
+// `authentication? Alice -> Bob: sig` is reported attacker-relayable. (Each envelope is itself
+// unique — `freshness? ct` passes thanks to the random nonce — but uniqueness is not anti-replay.)
+// This matches THREAT_MODEL.md: replay is an application-layer responsibility. shield_replay.vp
+// reproduces this verified non-result.
+

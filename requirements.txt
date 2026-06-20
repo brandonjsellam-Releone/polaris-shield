@@ -1,0 +1,8 @@
+# POLARIS Shield runtime deps. PQ libraries pinned EXACTLY so the deterministic
+# KAT vectors (kat_vectors.json) cannot silently drift across versions.
+kyber-py==1.2.0
+dilithium-py==1.4.0
+slh-dsa==0.2.3
+cryptography>=48.0.1,<49
+# dev / test (also available via:  pip install -e .[dev] )
+pytest>=8

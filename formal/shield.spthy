@@ -1,0 +1,243 @@
+theory POLARIS_Shield
+begin
+
+/*
+  POLARIS Shield hybrid handshake - Tamarin symbolic model (UNBOUNDED sessions).
+
+  An INDEPENDENT, complementary second formal-verification lineage beside the
+  Verifpal models (tech/formal/shield*.vp): Tamarin proves the security goals
+  over an UNBOUNDED number of concurrent sessions in the Dolev-Yao model.
+
+  Faithful abstraction (assumptions stated honestly):
+    * Classical leg : Diffie-Hellman (X25519/X448)            -> builtin diffie-hellman
+    * Post-quantum  : ML-KEM modelled as an IND-CCA KEM       -> asymmetric-encryption
+                      (encapsulation = aenc of a fresh secret; ML-KEM IND-CCA assumed)
+    * Sender auth   : ML-DSA modelled as an EUF-CMA signature -> builtin signing
+    * Combiner/KDF  : SP 800-56C-shaped HKDF over (ss_c, ss_pq, transcript) -> kdf/3
+    * AEAD          : AES-256-GCM modelled as authenticated symmetric enc -> symmetric-encryption
+
+  The transcript is suite_id || flags || recipient_key_id || eph_pub || kem_ct ||
+  nonce - EXACTLY the real _pre_auth_transcript (FORMAT.md 2.6), with NO explicit
+  party identities. The sender is bound the way the code binds it: via sender_kid
+  (a hash of the sender's signing key) INSIDE THE SIGNATURE, not in the KDF
+  transcript; the recipient is bound via recipient_key_id and by PINNING a suite
+  to its key. So downgrade resistance and parameter agreement are provable
+  in-lineage without over-binding identities the wire format does not carry.
+
+  SCOPE / HONESTY: this is a SYMBOLIC (Dolev-Yao) proof. It assumes ML-KEM
+  IND-CCA, ML-DSA EUF-CMA, perfect AEAD, and authentic public-key distribution;
+  it is NOT a computational / side-channel / implementation / FIPS result.
+  Out of scope HERE (covered by the Verifpal models and/or the implementation
+  tests + the interop corpus): the anonymous-mode send path / flag-stripping as
+  a distinct rule, ephemeral-state reveal / forward secrecy, and injective
+  (anti-replay) agreement. sender_authentication below is deliberately
+  NON-injective (agreement on the transcript, not freshness), consistent with
+  shield_replay.vp and THREAT_MODEL.md.
+*/
+
+builtins: diffie-hellman, symmetric-encryption, asymmetric-encryption, signing, hashing
+
+functions: kdf/3   // session key = kdf(ss_classical, ss_pq, transcript)
+
+/* --------------------------------------------------------------------------
+   PKI: the recipient PINS a public suite_id to its hybrid key; the sender has
+   an ML-DSA signing key. Authentic key distribution is assumed (persistent
+   !Pk_* facts).
+   -------------------------------------------------------------------------- */
+
+rule Setup_Recipient:
+    [ Fr(~xb), Fr(~ks) ]
+  --[ SetupR($B, $suite) ]->
+    [ !Ltk_R($B, $suite, ~xb, ~ks)
+    , !Pk_R($B, $suite, 'g'^~xb, pk(~ks))
+    , Out(<$B, $suite, 'g'^~xb, pk(~ks)>)
+    ]
+
+rule Setup_Sender:
+    [ Fr(~sk) ]
+  --[ SetupS($A) ]->
+    [ !Ltk_S($A, ~sk)
+    , !Pk_S($A, pk(~sk))
+    , Out(<$A, pk(~sk)>)
+    ]
+
+/* --------------------------------------------------------------------------
+   Per-leg compromise (a CRQC breaking ONE leg of the recipient's hybrid
+   identity, or a sender signing-key compromise). The two recipient legs are
+   revealed independently.
+   -------------------------------------------------------------------------- */
+
+rule Reveal_Classical:
+    [ !Ltk_R($B, suite, ~xb, ~ks) ] --[ RevealClassical($B) ]-> [ Out(~xb) ]
+
+rule Reveal_PQ:
+    [ !Ltk_R($B, suite, ~xb, ~ks) ] --[ RevealPQ($B) ]-> [ Out(~ks) ]
+
+rule Reveal_Sign:
+    [ !Ltk_S($A, ~sk) ] --[ RevealSign($A) ]-> [ Out(~sk) ]
+
+/* --------------------------------------------------------------------------
+   The one-pass authenticated hybrid handshake (sender -> recipient): ephemeral
+   DH + KEM encapsulation + a signature over the suite/flags/rkid-bound
+   transcript + AEAD sealed under the combined key.
+   -------------------------------------------------------------------------- */
+
+rule Send:
+    let
+        epub       = 'g'^~e
+        ss_c       = pkB_dh^~e                 // (g^xb)^e
+        kem_ct     = aenc(~sspq, pkB_kem)      // ML-KEM encapsulation of fresh ss_pq
+        rkid       = h(<pkB_dh, pkB_kem>)      // recipient key-id (binds the hybrid key)
+        sender_kid = h(pk(~sk))                // sender key-id (binds the sender's signing key)
+        transcript = <$suite, $flags, rkid, epub, kem_ct, ~nonce>
+        key        = kdf(ss_c, ~sspq, transcript)
+        sig        = sign(<transcript, sender_kid>, ~sk)   // SIGMA: signs pre_auth || sender_kid
+        c          = senc(~m, key)
+    in
+    [ Fr(~e), Fr(~sspq), Fr(~nonce), Fr(~m)
+    , !Ltk_S($A, ~sk)
+    , !Pk_R($B, $suite, pkB_dh, pkB_kem)       // sender uses the recipient's PINNED suite
+    ]
+  --[ Send($A, $B, key, ~m, transcript)
+    , SecretMsg($A, $B, ~m)
+    , UsedSuite($A, $B, $suite)
+    ]->
+    [ Out(<epub, kem_ct, ~nonce, $suite, $flags, pk(~sk), sig, c>) ]
+
+rule Recv:
+    let
+        rkid        = h(<'g'^~xb, pk(~ks)>)    // recomputed from the recipient's OWN keys
+        claimed_kid = h(pkA)                   // sender key-id, recomputed from the sender's pub
+        transcript  = <suite, flags, rkid, epub, kem_ct, nonce>
+        ss_c        = epub^~xb                 // (g^e)^xb
+        sspq        = adec(kem_ct, ~ks)
+        key         = kdf(ss_c, sspq, transcript)
+        m           = sdec(c, key)
+    in
+    [ In(<epub, kem_ct, nonce, suite, flags, pkA, sig, c>)
+    , !Ltk_R($B, suite, ~xb, ~ks)              // recipient ACCEPTS only under its pinned suite
+    , !Pk_S($A, pkA)
+    ]
+  --[ Eq(verify(sig, <transcript, claimed_kid>, pkA), true)
+    , Accept($A, $B, m, transcript)
+    , AcceptedSuite($A, $B, suite)
+    ]->
+    [ ]
+
+restriction Equality:
+    "All x y #i. Eq(x, y) @ i ==> x = y"
+
+/* --------------------------------------------------------------------------
+   Security lemmas
+   -------------------------------------------------------------------------- */
+
+// Sanity: an honest run is possible (the model is not vacuously true).
+lemma executable:
+    exists-trace
+    "Ex A B k m t #i #j.
+        Send(A, B, k, m, t) @ i
+      & Accept(A, B, m, t) @ j
+      & not (Ex #r. RevealClassical(B) @ r)
+      & not (Ex #r. RevealPQ(B) @ r)
+      & not (Ex #r. RevealSign(A) @ r)"
+
+// HYBRID SECRECY (headline / harvest-now-decrypt-later): the sealed plaintext
+// stays secret unless the adversary breaks BOTH legs of the recipient's hybrid
+// identity. A single-leg compromise is provably insufficient.
+lemma hybrid_secrecy:
+    "All A B m #i.
+        SecretMsg(A, B, m) @ i
+      & not (Ex #c #p. RevealClassical(B) @ c & RevealPQ(B) @ p)
+      ==> not (Ex #k. K(m) @ k)"
+
+// Corollary 1 - classical leg fully broken (CRQC), pq intact: still secret.
+lemma secrecy_under_classical_break:
+    "All A B m #i.
+        SecretMsg(A, B, m) @ i
+      & not (Ex #p. RevealPQ(B) @ p)
+      ==> not (Ex #k. K(m) @ k)"
+
+// Corollary 2 - pq leg broken, classical intact: still secret.
+lemma secrecy_under_pq_break:
+    "All A B m #i.
+        SecretMsg(A, B, m) @ i
+      & not (Ex #c. RevealClassical(B) @ c)
+      ==> not (Ex #k. K(m) @ k)"
+
+// SENDER AUTHENTICATION (transcript agreement) - deliberately NON-injective:
+// if Bob accepts a message as from Alice over transcript t and Alice's signing
+// key is uncompromised, Alice really ran the protocol with exactly that
+// transcript. Anti-replay (injective agreement) is intentionally NOT claimed.
+lemma sender_authentication:
+    "All A B m t #i.
+        Accept(A, B, m, t) @ i
+      & not (Ex #r. RevealSign(A) @ r)
+      ==> (Ex k mm #j. Send(A, B, k, mm, t) @ j)"
+
+// DOWNGRADE RESISTANCE: the recipient only ever accepts under the suite PINNED
+// to its key; combined with sender_authentication (the suite_id + flags are
+// inside the signed transcript t), the negotiated parameters cannot be
+// downgraded by a network attacker.
+lemma recipient_only_accepts_pinned_suite:
+    "All A B m t suite #i.
+        Accept(A, B, m, t) @ i
+      & AcceptedSuite(A, B, suite) @ i
+      ==> (Ex #s. SetupR(B, suite) @ s)"
+
+// KCI RESISTANCE: sender authenticity survives COMPROMISE OF THE RECIPIENT's
+// hybrid keys (it never depended on them) - an attacker who steals Bob's
+// classical + pq keys still cannot impersonate an honest Alice to Bob.
+lemma kci_resistance:
+    "All A B m t #i.
+        Accept(A, B, m, t) @ i
+      & not (Ex #r. RevealSign(A) @ r)
+      & (Ex #c. RevealClassical(B) @ c)
+      & (Ex #p. RevealPQ(B) @ p)
+      ==> (Ex k mm #j. Send(A, B, k, mm, t) @ j)"
+
+/* --------------------------------------------------------------------------
+   Non-vacuity controls. A fast automatic proof must be checked for SPURIOUS
+   strength: these exists-trace lemmas prove the adversary genuinely CAN break
+   each protection once its safeguard is removed, and that the single-leg
+   corollaries are inhabited (their premise is reachable) - so the lemmas above
+   are meaningful, not artifacts of an under-powered attacker.
+   -------------------------------------------------------------------------- */
+
+// Both legs revealed => the adversary recovers the plaintext (hybrid_secrecy
+// is meaningful: a full hybrid break loses it).
+lemma sanity_both_legs_broken_leaks:
+    exists-trace
+    "Ex A B m #i #c #p #k.
+        SecretMsg(A, B, m) @ i
+      & RevealClassical(B) @ c
+      & RevealPQ(B) @ p
+      & K(m) @ k"
+
+// Sender signing key revealed => the adversary makes Bob accept a transcript
+// the real sender never ran (sender_authentication is meaningful).
+lemma sanity_sign_reveal_allows_forgery:
+    exists-trace
+    "Ex A B m t #i #r.
+        Accept(A, B, m, t) @ i
+      & RevealSign(A) @ r
+      & not (Ex k mm #j. Send(A, B, k, mm, t) @ j)"
+
+// A run completes with ONLY the classical leg revealed (secrecy_under_classical_break
+// is non-vacuous: its premise is reachable, the Reveal rule is not dead).
+lemma sanity_classical_break_run_exists:
+    exists-trace
+    "Ex A B m t #i #c.
+        Accept(A, B, m, t) @ i
+      & RevealClassical(B) @ c
+      & not (Ex #p. RevealPQ(B) @ p)"
+
+// A run completes with ONLY the pq leg revealed (secrecy_under_pq_break is
+// non-vacuous).
+lemma sanity_pq_break_run_exists:
+    exists-trace
+    "Ex A B m t #i #p.
+        Accept(A, B, m, t) @ i
+      & RevealPQ(B) @ p
+      & not (Ex #c. RevealClassical(B) @ c)"
+
+end

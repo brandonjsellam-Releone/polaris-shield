@@ -1,0 +1,547 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "polaris-shield",
+      "version": "2.0.0",
+      "description": "POLARIS Shield cryptographic inventory (CBOM) - algorithm-agile hybrid PQC."
+    },
+    "tools": [
+      {
+        "vendor": "POLARIS",
+        "name": "make_cbom.py",
+        "version": "1.0"
+      }
+    ],
+    "properties": [
+      {
+        "name": "cbom:scope",
+        "value": "design-derived cryptographic asset inventory (FORMAT.md suite table)"
+      },
+      {
+        "name": "cbom:note",
+        "value": "Inventory only, NOT a certification claim. nistQuantumSecurityLevel 0 = a classical leg with no standalone post-quantum security; the hybrid's PQ security comes from the ML-KEM leg, bound to the classical leg by the SP 800-56C combiner so BOTH must break to recover plaintext."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:aes-256-gcm",
+      "name": "AES-256-GCM",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "ae",
+          "parameterSetIdentifier": "AES-256-GCM",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "encrypt",
+            "decrypt",
+            "tag"
+          ],
+          "nistQuantumSecurityLevel": 5
+        },
+        "oid": "2.16.840.1.101.3.4.1.46"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "NIST SP 800-38D"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x01, 0x02"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:hkdf-sha256",
+      "name": "HKDF-SHA256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kdf",
+          "parameterSetIdentifier": "HKDF-SHA-256",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "key-derive"
+          ],
+          "nistQuantumSecurityLevel": 2
+        }
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "RFC 5869 / SP 800-56C"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x01"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:hkdf-sha384",
+      "name": "HKDF-SHA384",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kdf",
+          "parameterSetIdentifier": "HKDF-SHA-384",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "key-derive"
+          ],
+          "nistQuantumSecurityLevel": 3
+        }
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "RFC 5869 / SP 800-56C"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x02 (CNSA 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:ml-dsa-65",
+      "name": "ML-DSA-65",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "parameterSetIdentifier": "ML-DSA-65",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.3.18"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 204"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x01"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:ml-dsa-87",
+      "name": "ML-DSA-87",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "parameterSetIdentifier": "ML-DSA-87",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 5
+        },
+        "oid": "2.16.840.1.101.3.4.3.19"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 204"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x02 (CNSA 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:ml-kem-1024",
+      "name": "ML-KEM-1024",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kem",
+          "parameterSetIdentifier": "ML-KEM-1024",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "encapsulate",
+            "decapsulate"
+          ],
+          "nistQuantumSecurityLevel": 5
+        },
+        "oid": "2.16.840.1.101.3.4.4.3"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 203"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x02 (CNSA 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:ml-kem-768",
+      "name": "ML-KEM-768",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kem",
+          "parameterSetIdentifier": "ML-KEM-768",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "encapsulate",
+            "decapsulate"
+          ],
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.4.2"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 203"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x01"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:sha-256",
+      "name": "SHA-256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "SHA-256",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "digest"
+          ],
+          "nistQuantumSecurityLevel": 2
+        },
+        "oid": "2.16.840.1.101.3.4.2.1"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 180-4"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x01"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:sha-384",
+      "name": "SHA-384",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "SHA-384",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "digest"
+          ],
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.2.2"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 180-4"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x02 (CNSA 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:shake-256",
+      "name": "SHAKE-256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "xof",
+          "parameterSetIdentifier": "SHAKE-256",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "digest",
+            "xof"
+          ],
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.2.12"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 202"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "key-ids (both suites)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:slh-dsa",
+      "name": "SLH-DSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "parameterSetIdentifier": "SLH-DSA (hash-based)",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 5
+        }
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "FIPS 205"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "high-assurance (opt-in dual-sign)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:x25519",
+      "name": "X25519",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "parameterSetIdentifier": "Curve25519",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "key-agreement"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.101.110"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "RFC 7748"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "false"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x01"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:x448",
+      "name": "X448",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "parameterSetIdentifier": "Curve448",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "key-agreement"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.101.111"
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "RFC 7748"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "false"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "0x02 (CNSA 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:scrypt",
+      "name": "scrypt",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kdf",
+          "parameterSetIdentifier": "scrypt n=2^17",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "password-derive"
+          ],
+          "nistQuantumSecurityLevel": 2
+        }
+      },
+      "properties": [
+        {
+          "name": "polaris:standard",
+          "value": "RFC 7914"
+        },
+        {
+          "name": "polaris:quantum-resistant",
+          "value": "true"
+        },
+        {
+          "name": "polaris:used-in-suite",
+          "value": "at-rest private-key wrap"
+        }
+      ]
+    }
+  ]
+}

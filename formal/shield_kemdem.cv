@@ -1,0 +1,133 @@
+(* =====================================================================
+   POLARIS Shield — OPTIONAL one-step KEM-DEM secrecy corollary, in CryptoVerif
+   2.12 (oracle front end).  Companion to shield_combiner.cv.
+
+   Run (in the polaris-cryptoverif Docker image):
+       opam exec -- cryptoverif -in oracles shield_kemdem.cv
+
+   --------------------------------------------------------------------------
+   WHAT THIS ADDS BEYOND shield_combiner.cv
+   --------------------------------------------------------------------------
+   shield_combiner.cv proves the CORE claim: the combiner key
+       K = H(ss_c, ss_pq, transcript)        (HKDF as a 3-input ROM)
+   is indistinguishable from a fresh random key under single-leg compromise.
+
+   This file chains ONE more standard step — the KEM-DEM composition of
+   SECURITY_ARGUMENT.md §3 last bullet ("From KEM to channel"): the pseudorandom
+   K is used as an AES-256-GCM key to seal a payload, with the envelope header as
+   associated data (shield.py:seal, lines 280-282). We model AES-256-GCM as an
+   AEAD scheme that is IND-CPA + INT-CTXT (SECURITY_ARGUMENT.md §4, SP 800-38D),
+   and prove:
+
+       (1) message confidentiality : the sealed payload is indistinguishable
+           from the encryption of a constant (real-or-random of the plaintext),
+       (2) ciphertext integrity    : the receiver never accepts a ciphertext the
+           sender did not produce (authentication / INT-CTXT).
+
+   This is the full "combiner -> AEAD" corollary, again under SINGLE-LEG
+   compromise: the adversary is GIVEN the classical leg ss_c but not ss_pq.
+
+   --------------------------------------------------------------------------
+   MAPPING TO THE CONSTRUCTION
+   --------------------------------------------------------------------------
+     - H(ss_c, ss_pq, tr)  = HKDF combiner (shield.py:_derive_key), ROM.
+     - ss_c                = classical ECDH secret (RFC 7748), LEAKED here.
+     - ss_pq               = ML-KEM shared secret (FIPS 203), withheld.
+     - tr (transcript)     = HKDF info = label ‖ suite_id ‖ pre_auth.
+     - enc/dec under K     = AES-256-GCM (shield.py:seal/open), AEAD.
+     - hdr (add_data)      = the envelope header bound as GCM AAD.
+
+   WHAT IS *NOT* MECHANIZED (argued / cited; see SECURITY_ARGUMENT.md §4/§5):
+     - ML-KEM IND-CCA (FIPS 203) and strong-DH (RFC 7748): abstracted by
+       sampling the secrets, exactly as in shield_combiner.cv.
+     - That AES-256-GCM *is* IND-CPA+INT-CTXT: assumed via the AEAD macro
+       (SP 800-38D), not re-proven here.
+   ===================================================================== *)
+
+(* ---- types -------------------------------------------------------------- *)
+type ss_c_t       [large,fixed].   (* classical ECDH secret ss_c             *)
+type ss_pq_t      [large,fixed].   (* ML-KEM shared secret ss_pq             *)
+type transcript_t [fixed].         (* the bound transcript (HKDF info field) *)
+type key_t        [large,fixed].   (* the 32-byte derived AEAD key K         *)
+type msg_t        [fixed].         (* fixed-length payload block (the plaintext) *)
+
+(* ---- HKDF combiner as a 3-input random oracle --------------------------- *)
+type hashkey [fixed].
+expand ROM_hash_3(hashkey, ss_c_t, ss_pq_t, transcript_t, key_t, H, hashoracle, qH).
+
+(* ---- AES-256-GCM modeled as an AEAD (IND-CPA + INT-CTXT) ----------------- *)
+(* key_t is the derived key type, so the combiner output feeds the AEAD key
+   directly. cleartext = msg_t (a fixed-length payload block, so the two LR
+   challenge messages are equal length by typing). add_data carries the
+   envelope header (GCM AAD). *)
+proba Penc.       (* IND-CPA advantage of AES-256-GCM   *)
+proba Pencctxt.   (* INT-CTXT advantage of AES-256-GCM  *)
+expand AEAD(key_t, msg_t, bitstring, bitstring, enc, dec, injbot, Z, Penc, Pencctxt).
+
+(* msg_t is a FIXED-length block, so the length leak Z(.) is a single constant
+   Zmsg, independent of the message content. This is what makes the two LR
+   challenge plaintexts indistinguishable after IND-CPA (the ciphertext leaks
+   only Z(menc) = Zmsg, the same for either choice of b). Idiom from the bundled
+   pkauth-guess.cv example. *)
+const Zmsg: msg_t.
+equation forall x: msg_t; Z(x) = Zmsg.
+
+(* if_fun(b, x, y) = x if b else y is BUILT IN (default library). The standard
+   CryptoVerif left-right selector: keeps the choice from expanding into two
+   process branches, which lets the system prove real-or-random confidentiality. *)
+
+(* ---- queries ------------------------------------------------------------ *)
+(* (1) message confidentiality: the secret bit b that selects between the two
+       adversary-supplied (equal-length, by msg_t typing) plaintexts is hidden. *)
+query secret b.
+(* (2) ciphertext integrity: the receiver accepts only sender-produced ctxts. *)
+event accept(bitstring).
+event sent(bitstring).
+query c: bitstring; event(accept(c)) ==> event(sent(c)).
+
+const trC: transcript_t.   (* public transcript for the session *)
+param N.                   (* number of sealed messages         *)
+
+(* ---- opening oracle: integrity side ------------------------------------- *)
+(* The receiver decrypts an adversary-supplied ciphertext under the session key
+   and, on success, raises accept(c). INT-CTXT forbids accept on any non-sent c. *)
+let opener(K: key_t) =
+    Oopen(c: bitstring, hdr: bitstring) :=
+        let injbot(m: msg_t) = dec(c, hdr, K) in
+            event accept(c);
+            return(true)
+        else
+            return(false).
+
+(* ---- main game ---------------------------------------------------------- *)
+(* The sealing oracle is INLINED so the secret challenge bit b stays a single
+   variable (a macro parameter would count as a second definition of b and break
+   the secrecy query). The adversary supplies two equal-length plaintexts m1, m2
+   and a header hdr; the oracle seals if_fun(b, m1, m2) under the session key.
+   IND-CPA of AES-GCM, keyed by the pseudorandom combiner output, hides the
+   choice — message confidentiality. *)
+process
+    Ostart() :=
+        hk <-R hashkey;
+        b <-R bool;                  (* the secret challenge bit            *)
+        (* derive ONE session key, shared by sealer and opener (one channel) *)
+        ss_c0  <-R ss_c_t;
+        ss_pq0 <-R ss_pq_t;          (* PQ leg withheld                     *)
+        Ksession: key_t <- H(hk, ss_c0, ss_pq0, trC);
+        return(ss_c0);               (* leak the classical leg              *)
+        (
+          run hashoracle(hk)
+          | (
+              foreach i <= N do
+              Oseal(m1: msg_t, m2: msg_t, hdr: bitstring) :=
+                menc: msg_t <- if_fun(b, m1, m2);
+                ctxt: bitstring <- enc(menc, hdr, Ksession);
+                event sent(ctxt);
+                return(ctxt)
+            )
+          | run opener(Ksession)
+        )
+
+(* EXPECTED
+All queries proved.
+END *)

@@ -1,0 +1,102 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "polaris-shield",
+      "version": "2.0.0",
+      "purl": "pkg:pypi/polaris-shield@2.0.0",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "description": "POLARIS Shield - algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation.",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://borealispolaris.io"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/brandonjsellam-Releone/borealispolaris"
+        }
+      ]
+    },
+    "tools": [
+      {
+        "vendor": "POLARIS",
+        "name": "make_sbom.py",
+        "version": "1.0"
+      }
+    ],
+    "properties": [
+      {
+        "name": "sbom:scope",
+        "value": "declared-direct-dependencies"
+      },
+      {
+        "name": "sbom:note",
+        "value": "Transitive closure is resolved in CI via cyclonedx-py; this baseline lists pinned direct deps only."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": ">=48.0.1,<49",
+      "purl": "pkg:pypi/cryptography",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "version:constraint",
+          "value": ">=48.0.1,<49"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "dilithium-py",
+      "version": "1.4.0",
+      "purl": "pkg:pypi/dilithium-py@1.4.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "kyber-py",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/kyber-py@1.2.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "slh-dsa",
+      "version": "0.2.3",
+      "purl": "pkg:pypi/slh-dsa@0.2.3",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ]
+    }
+  ]
+}

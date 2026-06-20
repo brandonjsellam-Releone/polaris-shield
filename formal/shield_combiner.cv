@@ -1,0 +1,147 @@
+(* =====================================================================
+   POLARIS Shield — mechanized COMPUTATIONAL proof of the hybrid combiner's
+   core key-indistinguishability claim, in CryptoVerif 2.12 (oracle front end).
+
+   Run (in the polaris-cryptoverif Docker image):
+       opam exec -- cryptoverif -in oracles shield_combiner.cv
+   This file uses the ORACLE front end (Oxxx() := ...), so it MUST be run with
+   "-in oracles" (CryptoVerif otherwise defaults to the channel front end and
+   errors with a syntax error). Equivalently, run the byte-identical .ocv copy
+   kept beside this file (the .ocv extension selects the oracle front end).
+
+   --------------------------------------------------------------------------
+   WHAT THIS MODELS
+   --------------------------------------------------------------------------
+   The Shield session/AEAD key is (tech/SECURITY_ARGUMENT.md §1;
+   shield.py:_derive_key, lines 224-234):
+
+       K = HKDF(salt = "POLARIS-Shield-combiner/v2",
+                IKM  = u16(len ss_c) ‖ ss_c ‖ u16(len ss_pq) ‖ ss_pq,
+                info = label ‖ suite_id ‖ pre_auth,
+                L    = 32)
+
+   SECURITY_ARGUMENT.md §3/§4 abstracts "HKDF as a (dual-)PRF / extractor in the
+   (Q)ROM". We take that abstraction at face value and model HKDF as a RANDOM
+   ORACLE H on its three logical inputs:
+
+       K = H(ss_c, ss_pq, transcript)
+
+     - ss_c        : classical ECDH shared secret (RFC 7748)            -> input1
+     - ss_pq       : ML-KEM shared secret (FIPS 203)                    -> input2
+     - transcript  : info = label ‖ suite_id ‖ pre_auth, i.e. the full
+                     handshake transcript                              -> input3
+
+   The u16 length-framing of the IKM is what makes the (ss_c ‖ ss_pq) encoding
+   INJECTIVE (SECURITY_ARGUMENT.md §3, "Injective encoding"). In the ROM,
+   modeling the two secrets as two separate TYPED arguments of H captures exactly
+   that injective, unambiguous parse: there is no concatenation ambiguity to
+   exploit, so distinct secret pairs map to distinct ROM points.
+
+   --------------------------------------------------------------------------
+   THE CLAIM PROVEN HERE
+   --------------------------------------------------------------------------
+   SECURITY_ARGUMENT.md §3 ("Hybrid IND-CCA / one-leg-break resistance") — the
+   computational counterpart of the symbolic `hybrid_secrecy` lemma
+   (formal/shield.spthy) and the two single-leg Verifpal models:
+
+       K is indistinguishable from a fresh random key as long as the adversary
+       lacks AT LEAST ONE of {ss_c, ss_pq}.
+
+   We mechanize this as the SINGLE-LEG-COMPROMISE model, in BOTH directions,
+   as two independent honest derivations / secrecy queries in one game:
+
+     (A) CLASSICAL leg broken  -> Kc : adversary is GIVEN ss_c, but not ss_pq.
+         This is the harvest-now-decrypt-later / CRQC-breaks-ECDH scenario:
+         even with the classical secret in hand, Kc stays pseudorandom because
+         ss_pq is protected (ML-KEM IND-CCA). [§3, first bullet, 1st sub-bullet]
+
+     (B) POST-QUANTUM leg broken -> Kq : adversary is GIVEN ss_pq, but not ss_c.
+         If ML-KEM were broken, Kq stays pseudorandom because ss_c is protected
+         by strong DH on X25519/X448.                    [§3, first bullet, 2nd]
+
+   In the ROM the argument is standard: H's output on (ss_c, ss_pq, transcript)
+   is a fresh random value unless the adversary queries H at EXACTLY that point,
+   which requires knowing BOTH secrets. In (A) it is missing ss_pq; in (B) it is
+   missing ss_c; in each it cannot hit the point, so the key is random and hence
+   indistinguishable from a fresh key.
+
+   --------------------------------------------------------------------------
+   WHAT IS *NOT* IN THIS MODEL  (argued, not mechanized; see SECURITY_ARGUMENT.md)
+   --------------------------------------------------------------------------
+     - ML-KEM IND-CCA itself (FIPS 203 / Module-LWE). We do NOT prove ss_pq is
+       hidden from a real ML-KEM adversary; we ABSTRACT that by sampling ss_pq as
+       a fresh secret the adversary is not given. The reduction to ML-KEM IND-CCA
+       lives in [GHP18]/[X-Wing], cited not re-proven.
+     - Strong-DH on X25519/X448 (the classical leg's own hardness) — abstracted
+       the same way for ss_c.
+     - The AEAD / KEM-DEM channel (AES-256-GCM). The combiner key-indistinguish-
+       ability proven here is exactly the precondition the KEM-DEM composition
+       needs; the channel proof is separate (SECURITY_ARGUMENT.md §3 last bullet).
+   ===================================================================== *)
+
+(* ---- abstract secret-material and transcript types ---------------------- *)
+(* "large,fixed" = uniformly sampleable with negligible collision probability:
+   the right model for a high-entropy shared secret. ss_c and ss_pq are SEPARATE
+   types so the ROM argument tracks each leg independently. *)
+type ss_c_t       [large,fixed].   (* classical ECDH secret ss_c             *)
+type ss_pq_t      [large,fixed].   (* ML-KEM shared secret ss_pq             *)
+type transcript_t [fixed].         (* the bound transcript (HKDF info field) *)
+type key_t        [large,fixed].   (* the 32-byte derived AEAD key K         *)
+
+(* ---- HKDF combiner modeled as a 3-input random oracle (ROM) ------------- *)
+(* hashkey hk: the formal "key" of the ROM (an artifact of CryptoVerif's keyed-
+   hash modeling; generated once, handed to the adversary via the oracle).
+   H        = the KDF/combiner.
+   hashoracle = the oracle giving the adversary UNRESTRICTED H-queries on any
+   (x1,x2,x3) of its choice — precisely "the adversary may evaluate the KDF/ROM
+   anywhere it likes". qH bounds the number of such queries. *)
+type hashkey [fixed].
+expand ROM_hash_3(hashkey, ss_c_t, ss_pq_t, transcript_t, key_t, H, hashoracle, qH).
+
+(* ---- security queries (real-or-random key indistinguishability) --------- *)
+(* For each leg-compromise direction, CryptoVerif must show the real derived key
+   is indistinguishable from a fresh independent key_t value. This IS the
+   combiner key-indistinguishability / HYBRID-SECRECY property. *)
+query secret Kc.   (* (A) classical leg leaked: ss_c given, ss_pq protected *)
+query secret Kq.   (* (B) PQ leg leaked:        ss_pq given, ss_c protected *)
+
+(* Public transcripts for the two honest sessions. The transcript travels on the
+   wire, so it is PUBLIC: we hand it to the adversary. The proof must NOT rely on
+   transcript secrecy — only on the missing secret leg. Distinct constants keep
+   the two sessions' derivations independent. *)
+const trC: transcript_t.
+const trQ: transcript_t.
+
+(* ---- (A) honest derivation with the CLASSICAL leg compromised ----------- *)
+(* ss_c, ss_pq sampled fresh; LEAK ss_c (+ public transcript); ss_pq withheld;
+   Kc := H(hk, ss_c, ss_pq, trC) is the combiner output. *)
+let deriveC(hk: hashkey) =
+    OderiveC() :=
+        ss_c  <-R ss_c_t;       (* classical ECDH secret                  *)
+        ss_pq <-R ss_pq_t;      (* ML-KEM shared secret (NOT given out)   *)
+        Kc: key_t <- H(hk, ss_c, ss_pq, trC);
+        return(ss_c, trC).      (* leak classical leg + public transcript *)
+
+(* ---- (B) honest derivation with the POST-QUANTUM leg compromised -------- *)
+(* Symmetric: LEAK ss_pq (+ public transcript); ss_c withheld;
+   Kq := H(hk, ss_c, ss_pq, trQ). *)
+let deriveQ(hk: hashkey) =
+    OderiveQ() :=
+        ss_c  <-R ss_c_t;       (* classical ECDH secret (NOT given out)  *)
+        ss_pq <-R ss_pq_t;      (* ML-KEM shared secret                   *)
+        Kq: key_t <- H(hk, ss_c, ss_pq, trQ);
+        return(ss_pq, trQ).     (* leak PQ leg + public transcript        *)
+
+(* ---- main game ---------------------------------------------------------- *)
+(* Adversary gets, in parallel: the H-oracle (probe the KDF anywhere) and both
+   honest single-leg derivations. Proving secrecy of BOTH Kc and Kq in this one
+   game establishes one-leg-break resistance in both directions simultaneously. *)
+process
+    Ostart() :=
+        hk <-R hashkey;            (* generate the ROM key once               *)
+        return();
+        (run hashoracle(hk) | run deriveC(hk) | run deriveQ(hk))
+
+(* EXPECTED
+All queries proved.
+END *)

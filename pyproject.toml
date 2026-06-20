@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "polaris-shield"
+version = "2.0.0"
+description = "POLARIS Shield — algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Brandon J. Sellam" }]
+keywords = ["post-quantum", "ML-KEM", "ML-DSA", "FIPS-203", "FIPS-204", "CNSA-2.0", "hybrid", "cryptography"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Security :: Cryptography",
+]
+# PQ reference libraries pinned exactly so the deterministic KAT vectors cannot silently drift.
+dependencies = [
+  "kyber-py==1.2.0",
+  "dilithium-py==1.4.0",
+  "slh-dsa==0.2.3",
+  "cryptography>=48.0.1,<49",   # >=48.0.1 clears every 2026 advisory pip-audit flags on 44/45/46/47; <49 matches requirements.txt + the Dockerfile major>=48 gate
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "hypothesis>=6.100",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "pip-audit>=2.7",
+]
+
+[project.scripts]
+polaris-shield = "polaris_shield.__main__:main"
+
+[project.urls]
+Homepage = "https://borealispolaris.io"
+Source = "https://github.com/brandonjsellam-Releone/borealispolaris"
+
+[tool.hatch.build.targets.wheel]
+packages = ["polaris_shield"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+# E501 (long lines) and E702 (compact one-line statements) suit the deliberate dense crypto layout.
+ignore = ["E501", "E702"]
+
+[tool.ruff.lint.per-file-ignores]
+# Negative tests deliberately assert a generic raise: the failure is InvalidTag (from
+# `cryptography`) for tamper/wrong-key and ValueError for malformed/suite-mismatch input.
+"test_*.py" = ["B017"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_ignores = true
+ignore_missing_imports = true   # kyber-py / dilithium-py ship no type stubs
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["."]
