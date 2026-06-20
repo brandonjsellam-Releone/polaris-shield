@@ -109,10 +109,12 @@ a *computational* reduction rather than a symbolic abstraction.
 - This is **not** a new theorem or a peer-reviewed proof. It argues that the Shield combiner *is an
   instance of* [GHP18]/[X-Wing]/dual-PRF combiners and *inherits* their security; the precise
   reduction lives in those papers, not here.
-- The combiner's key-indistinguishability core **is** now machine-checked computationally
-  (CryptoVerif — see the *Mechanized (CryptoVerif)* section). What is **not** mechanized is ML-KEM
-  IND-CCA itself, strong-DH, and the full end-to-end protocol composition: those remain argued here
-  (§2–§3) and/or covered by the symbolic Verifpal + Tamarin models.
+- The combiner's key-indistinguishability core **is** machine-checked computationally, and the
+  **hybrid-KEM IND-CCA composition is now mechanized on both legs** (CryptoVerif — see the
+  *Mechanized (CryptoVerif)* section: `shield_combiner_indcca.cv` reduces to ML-KEM IND-CCA,
+  `shield_combiner_dh.cv` to Gap-DH). What is **not** mechanized is ML-KEM IND-CCA and Gap-DH
+  **themselves**, and the full end-to-end protocol (handshake + AEAD channel): those remain the
+  standardized assumptions and/or are covered by the symbolic Verifpal + Tamarin + ProVerif models.
 - The Shield is **algorithm-agile with an HKDF combiner**, which is *structurally analogous to* but
   **not** the X-Wing construction (X-Wing fixes X25519 + ML-KEM-768 and a specific SHA3-256
   combiner, and is itself a standardization candidate). **For interoperable production traffic,
@@ -123,14 +125,17 @@ a *computational* reduction rather than a symbolic abstraction.
 
 ## 6. The next rigor frontier
 
-A machine-checked **computational** proof — e.g. an **EasyCrypt** or **CryptoVerif** model of the
-combiner + KEM-DEM composition, or formal alignment with the X-Wing proof artifacts — would close
-the gap between this argument and the symbolic proofs. Constant-time / side-channel analysis of the
-reference code is a separate, orthogonal hardening axis. Both are tracked as future work; neither is
-claimed done.
+> **Update (largely addressed 2026-06-20).** This frontier — a machine-checked **computational** proof
+> of the combiner **and** the hybrid-KEM IND-CCA **composition** — is now done in CryptoVerif: the
+> combiner core (`shield_combiner.cv` / `shield_kemdem.cv`) **and** the composition on **both** legs
+> (`shield_combiner_indcca.cv`, bound carrying `Adv_PQ_CCA`; `shield_combiner_dh.cv`, bound carrying
+> `Adv_GDH`) — see "## Mechanized (CryptoVerif)" below and `FORMAL_COVERAGE.md` row 9.
 
-> **Update (partially addressed).** The combiner core of this frontier is now done — see
-> "## Mechanized (CryptoVerif)" below. Constant-time analysis remains separate future work.
+What remains on the frontier: the leg assumptions themselves (ML-KEM IND-CCA / Gap-DH — standardized,
+not re-derived here), ML-KEM's small decryption-error term (X-Wing's delta_correctness), curve
+point-validation / small-subgroup handling, and HKDF-as-ROM; plus constant-time / side-channel analysis
+of the reference code (a separate, orthogonal hardening axis). These are tracked as future work; none is
+claimed done.
 
 ## Mechanized (CryptoVerif)
 
@@ -172,12 +177,26 @@ All queries proved.
 one leg's shared secret is hidden (the withheld secret); and, for the corollary, AES-256-GCM is
 IND-CPA + INT-CTXT (SP 800-38D).
 
-**What remains argued, not mechanized:** ML-KEM IND-CCA itself (FIPS 203 / Module-LWE) and strong-DH
-(RFC 7748) are **abstracted** — the model samples the protected secret fresh rather than reducing to
-those problems; the reductions live in [GHP18]/[X-Wing] (§2), cited not re-proven. The HKDF→ROM step
-is modeled, not derived from HMAC/SHA-2/SHA-3. The full channel/protocol logic (downgrade resistance,
-sender authentication, replay) remains covered by the **symbolic** Tamarin/Verifpal models. This is a
-**complete proof of the scoped combiner claim**, not an end-to-end protocol proof.
+**The composition, mechanized on both legs.** Beyond the single-leg combiner result above, two further
+CryptoVerif models close the GHP18/X-Wing **composition** step — "each component leg secure => the
+combined hybrid KEM is IND-CCA" — by *reducing to* the leg assumption rather than abstracting it:
+[`formal/shield_combiner_indcca.cv`](formal/shield_combiner_indcca.cv) equips the ML-KEM leg with a
+genuine IND-CCA2 KEM macro + an encapsulation/decapsulation oracle and proves the combined-KEM session
+key real-or-random with bound `2*qH/|ss_c_t| + 2*Adv_PQ_CCA` (the `Adv_PQ_CCA` term confirms ML-KEM
+IND-CCA is actually invoked); its mirror
+[`formal/shield_combiner_dh.cv`](formal/shield_combiner_dh.cv) reduces the same goal to the classical
+leg's **Gap-DH** hardness on X25519/X448 via CryptoVerif's GDH macro, bound `4*PDistRerandom + 2*Adv_GDH`.
+Together they give one-leg-break resistance reduced, on **each** side, to the surviving leg's standard
+assumption. CI asserts both advantage terms are present (a bare `auto` that dropped them would collapse
+back to the single-leg abstraction). See `FORMAL_COVERAGE.md` row 9.
+
+**What remains argued, not mechanized:** ML-KEM IND-CCA and Gap-DH **themselves** (FIPS 203 / Module-LWE;
+RFC 7748) — the standardized hard problems the composition reduces *to*, cited not re-proven; ML-KEM's
+small decryption-error term (X-Wing's delta_correctness); curve point-validation / small-subgroup
+handling; and the HKDF→ROM step (modeled, not derived from HMAC/SHA-2/SHA-3). The full channel/protocol
+logic (downgrade resistance, sender authentication, replay) is covered by the **symbolic**
+Tamarin / Verifpal / ProVerif models. This is a **complete proof of the scoped combiner + composition
+claims**, not an end-to-end protocol proof.
 
 ## References
 
