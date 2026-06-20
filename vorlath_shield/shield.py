@@ -127,7 +127,7 @@ _NULLX = _NullX()
 class Suite:
     suite_id: int
     name: str
-    ecdh: _XWrap
+    ecdh: _XWrap | _NullX
     kem: Any                  # ML_KEM_* module (no type stubs)
     sig: Any                  # ML_DSA_* module (no type stubs)
     hkdf_hash: Any            # cryptography hashes.* class

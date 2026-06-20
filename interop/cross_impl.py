@@ -65,7 +65,6 @@ from pqcrypto.kem import ml_kem_1024 as pq_ml_kem_1024
 from pqcrypto.sign import ml_dsa_65 as pq_ml_dsa_65
 from pqcrypto.sign import ml_dsa_87 as pq_ml_dsa_87
 
-
 # --------------------------------------------------------------------------- #
 # Algorithm registry — pair each reference module with its pqcrypto twin.
 # --------------------------------------------------------------------------- #
@@ -220,7 +219,7 @@ def run(iterations: int, seed: int | None) -> int:
 
     results: dict[str, tuple[int, int]] = {}
     failed = False
-    for family, pairs, check in legs:
+    for _family, pairs, check in legs:
         for name, ref, pq in pairs:
             ok = 0
             for i in range(iterations):

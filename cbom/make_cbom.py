@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Generate a CycloneDX 1.6 CBOM (Cryptographic Bill of Materials) for VORLATH Shield.
 
 A CBOM is the machine-readable cryptographic inventory that the US-federal PQC migration

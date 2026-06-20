@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Generate a CycloneDX 1.5 SBOM for VORLATH Shield from the DECLARED pinned deps.
 
 This is the *deterministic, checked-in baseline* SBOM: it is generated only from

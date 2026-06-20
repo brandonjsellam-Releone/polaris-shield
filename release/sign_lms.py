@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """VORLATH Shield -- SP 800-208 LMS release signature (self-checking round trip).
 
 PURPOSE
@@ -85,7 +84,6 @@ EXIT CODES
 
 ASCII only. No arrow glyphs anywhere in emitted text (VORLATH glyph rule).
 """
-import hashlib
 import json
 import os
 import sys
@@ -121,7 +119,7 @@ def load_bundle_digest():
     prove the sign/verify path."""
     if not os.path.exists(MANIFEST):
         sys.stderr.write(
-            "NOTE: %s not found; using fixed self-test digest.\n" % MANIFEST
+            f"NOTE: {MANIFEST} not found; using fixed self-test digest.\n"
         )
         return bytes.fromhex(SELFTEST_DIGEST_HEX), "self-test (manifest absent)"
     try:
@@ -131,8 +129,7 @@ def load_bundle_digest():
         digest = bytes.fromhex(hex_digest)
     except (ValueError, KeyError) as exc:
         sys.stderr.write(
-            "NOTE: could not read bundle_digest (%s); using self-test digest.\n"
-            % exc
+            f"NOTE: could not read bundle_digest ({exc}); using self-test digest.\n"
         )
         return bytes.fromhex(SELFTEST_DIGEST_HEX), "self-test (manifest unreadable)"
     if len(digest) != 32:
@@ -159,7 +156,7 @@ def main():
     digest_hex = digest.hex()
 
     print("VORLATH Shield -- SP 800-208 LMS release signing (demo, software-only)")
-    print("  signed payload : bundle_digest (SHA-256), %d bytes" % len(digest))
+    print(f"  signed payload : bundle_digest (SHA-256), {len(digest)} bytes")
     print("  digest source  : " + source)
     print("  bundle_digest  : " + digest_hex)
     print("  LMS param set  : lms_sha256_m24_h5 (single tree, 32 one-time sigs)")
@@ -173,11 +170,11 @@ def main():
     # ------------------------------------------------------------------
     if os.path.exists(PRV_PATH) or os.path.exists(PUB_PATH):
         fail(
-            "A key pair already exists at %s.{prv,pub}.\n"
+            f"A key pair already exists at {KEY_BASENAME}.{{prv,pub}}.\n"
             "REFUSING to proceed: an existing .prv may hold LIVE one-time state, "
             "and reusing a spent leaf is catastrophic. If this is genuinely a "
             "stale demo key, remove BOTH files MANUALLY and re-run -- never "
-            "automate that deletion." % KEY_BASENAME
+            "automate that deletion."
         )
 
     try:
@@ -188,11 +185,11 @@ def main():
             lmots_type=pyhsslms.lmots_sha256_n24_w8,
         )
     except FileExistsError as exc:
-        fail("genkey refused to overwrite an existing key: %s" % exc)
+        fail(f"genkey refused to overwrite an existing key: {exc}")
     except Exception as exc:  # pragma: no cover - defensive
-        fail("genkey failed: %s: %s" % (type(exc).__name__, exc))
+        fail(f"genkey failed: {type(exc).__name__}: {exc}")
 
-    print("OK   keygen      : wrote %s and %s" % (PRV_PATH, PUB_PATH))
+    print(f"OK   keygen      : wrote {PRV_PATH} and {PUB_PATH}")
 
     # ------------------------------------------------------------------
     # SIGN exactly once. pyhsslms advances the leaf index q and rewrites the
@@ -202,13 +199,13 @@ def main():
         sig = priv.sign(digest)
     except ValueError as exc:
         # Raised when the tree is exhausted -- the key is permanently dead.
-        fail("sign refused (key exhausted or invalid state): %s" % exc)
+        fail(f"sign refused (key exhausted or invalid state): {exc}")
     except Exception as exc:  # pragma: no cover - defensive
-        fail("sign failed: %s: %s" % (type(exc).__name__, exc))
+        fail(f"sign failed: {type(exc).__name__}: {exc}")
 
     if not isinstance(sig, (bytes, bytearray)) or len(sig) == 0:
         fail("sign returned no signature bytes.")
-    print("OK   sign        : %d signature bytes (one leaf now SPENT)" % len(sig))
+    print(f"OK   sign        : {len(sig)} signature bytes (one leaf now SPENT)")
 
     # Emit signature + public key. Copy the serialized .pub to the published
     # name; keep KEY_BASENAME.pub in place so the verifier can load by basename.
@@ -218,8 +215,7 @@ def main():
         pub_bytes = f.read()
     with open(PUB_OUT, "wb") as f:
         f.write(pub_bytes)
-    print("OK   emit        : %s (%d B), %s (%d B)"
-          % (SIG_OUT, len(sig), PUB_OUT, len(pub_bytes)))
+    print(f"OK   emit        : {SIG_OUT} ({len(sig)} B), {PUB_OUT} ({len(pub_bytes)} B)")
 
     # ------------------------------------------------------------------
     # VERIFY -- the self-checking round trip. Load the public key by basename
@@ -229,7 +225,7 @@ def main():
         pub = pyhsslms.HssLmsPublicKey(KEY_BASENAME)
         ok = pub.verify(digest, sig)
     except Exception as exc:  # pragma: no cover - defensive
-        fail("verify raised: %s: %s" % (type(exc).__name__, exc))
+        fail(f"verify raised: {type(exc).__name__}: {exc}")
 
     if ok is not True:
         fail("signature did NOT verify. Refusing to publish a bad signature.")
@@ -266,14 +262,14 @@ def main():
     # be reused. The .pub remains for verification. --keep-prv overrides this.
     # ------------------------------------------------------------------
     if keep_prv:
-        print("NOTE keep-prv    : spent .prv RETAINED at %s -- it is SPENT; do "
-              "NOT sign with it again." % PRV_PATH)
+        print(f"NOTE keep-prv    : spent .prv RETAINED at {PRV_PATH} -- it is SPENT; do "
+              "NOT sign with it again.")
     else:
         try:
             os.remove(PRV_PATH)
             print("OK   shred .prv  : spent one-time state removed (fail-safe).")
         except OSError as exc:  # pragma: no cover - defensive
-            sys.stderr.write("WARN: could not remove spent .prv: %s\n" % exc)
+            sys.stderr.write(f"WARN: could not remove spent .prv: {exc}\n")
 
     print("PASS: LMS release signed and verified (self-checking round trip).")
     return 0

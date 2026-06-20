@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Build the VORLATH Shield content-addressed verification bundle manifest.
 
 "CI-gated" is not the same as "externally reproducible." This script produces a
