@@ -34,11 +34,22 @@ each prover artifact to a standard security goal. It consolidates the per-tool t
 | 7 | **Combiner key-indistinguishability** — derived key ≈ random under single-leg compromise, **both directions** | CryptoVerif (computational) | `shield_combiner.cv` "RESULT Proved secrecy of Kq/Kc"; KEM-DEM corollary `shield_kemdem.cv` | computational |
 | 8 | **Non-vacuity controls** — honest runs exist; each protection provably breaks once its safeguard is removed | Tamarin | `executable`, `sanity_both_legs_broken_leaks`, `sanity_sign_reveal_allows_forgery`, `sanity_classical_break_run_exists`, `sanity_pq_break_run_exists` | exists-trace |
 | 9 | **Hybrid-KEM IND-CCA composition** — "each component leg secure => the combined hybrid KEM is IND-CCA", mechanized on **both** legs | CryptoVerif | `shield_combiner_indcca.cv` (bound carries `Adv_PQ_CCA` = the ML-KEM leg) + `shield_combiner_dh.cv` (bound carries `Adv_GDH` = the classical X25519/X448 leg) | computational |
+| 10 | **Sender-identity channel binding** — the *verified* `sender_kid` is folded into the KDF `info`, so the derived AES-256-GCM key is bound to the sender's identity (not only attested by the signature) | all four lineages | KDF transcript `‖ sender_kid` in `shield.spthy` / `shield.pv` / `shield.vp`+`shield_pq.vp`; abstract transcript in `shield_combiner.cv` | all-traces / query / computational |
 
 All 11 Tamarin lemmas auto-prove (~11 s, 1.12.0 / Maude 3.4); **ProVerif independently re-proves the
 unbounded goals (rows 1-6) as a fourth lineage** (`shield.pv`, all queries hold); both Verifpal models
 report *All queries pass*; CryptoVerif reports *All queries proved* for the combiner **and both
-composition models**. The **four** jobs (`prove`, `prove-tamarin`, `prove-proverif`, `prove-cryptoverif`)
+composition models**.
+
+> **2026-06-21 — goal 10 (sender_kid channel binding) lifted into the proofs.** The implementation
+> binds the *verified* `sender_kid` into the HKDF `info` (`shield.py`); previously only the *signature*
+> bound it in the symbolic models. All four lineages were updated to fold `sender_kid` into the KDF
+> transcript and re-proved unchanged (Tamarin 11/11, ProVerif all-queries, both Verifpal models *All
+> pass*, CryptoVerif *All proved*) — closing a model-vs-code coverage gap surfaced by an internal
+> adversarial review that otherwise found the design sound, independently corroborated by a 7-model
+> cryptographer panel (no crypto break).
+
+The **four** jobs (`prove`, `prove-tamarin`, `prove-proverif`, `prove-cryptoverif`)
 gate CI in [`.github/workflows/formal.yml`](../.github/workflows/formal.yml); the CryptoVerif gate
 additionally asserts the `Adv_PQ_CCA` / `Adv_GDH` advantage terms are actually invoked (not collapsed
 to an abstraction).

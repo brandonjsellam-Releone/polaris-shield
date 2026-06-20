@@ -19,7 +19,7 @@ begin
   The transcript is suite_id || flags || recipient_key_id || eph_pub || kem_ct ||
   nonce - EXACTLY the real _pre_auth_transcript (FORMAT.md 2.6), with NO explicit
   party identities. The sender is bound the way the code binds it: via sender_kid
-  (a hash of the sender's signing key) INSIDE THE SIGNATURE, not in the KDF
+  (a hash of the sender's signing key) INSIDE THE SIGNATURE AND channel-bound into the KDF
   transcript; the recipient is bound via recipient_key_id and by PINNING a suite
   to its key. So downgrade resistance and parameter agreement are provable
   in-lineage without over-binding identities the wire format does not carry.
@@ -90,7 +90,7 @@ rule Send:
         rkid       = h(<pkB_dh, pkB_kem>)      // recipient key-id (binds the hybrid key)
         sender_kid = h(pk(~sk))                // sender key-id (binds the sender's signing key)
         transcript = <$suite, $flags, rkid, epub, kem_ct, ~nonce>
-        key        = kdf(ss_c, ~sspq, transcript)
+        key        = kdf(ss_c, ~sspq, <transcript, sender_kid>)
         sig        = sign(<transcript, sender_kid>, ~sk)   // SIGMA: signs pre_auth || sender_kid
         c          = senc(~m, key)
     in
@@ -111,7 +111,7 @@ rule Recv:
         transcript  = <suite, flags, rkid, epub, kem_ct, nonce>
         ss_c        = epub^~xb                 // (g^e)^xb
         sspq        = adec(kem_ct, ~ks)
-        key         = kdf(ss_c, sspq, transcript)
+        key         = kdf(ss_c, sspq, <transcript, claimed_kid>)
         m           = sdec(c, key)
     in
     [ In(<epub, kem_ct, nonce, suite, flags, pkA, sig, c>)

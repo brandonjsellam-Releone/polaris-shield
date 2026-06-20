@@ -55,7 +55,7 @@
    kem_ct || nonce - EXACTLY the real _pre_auth_transcript (FORMAT.md 2.6), with
    NO explicit party identities. The sender is bound via sender_kid = h(spk(sk))
    (a hash of its OWN signing key) INSIDE THE SIGNATURE (SIGMA own-identity
-   binding), NOT in the KDF transcript; the recipient is bound via
+   binding), AND ALSO channel-bound into the KDF transcript; the recipient is bound via
    recipient_key_id = hkeys(pkB_dh, pkB_kem) and by PINNING a suite to its key.
    Bob runs checksign BEFORE decap (the checksign let-test is sequenced before
    decap), mirroring rule Recv's Eq(verify(...),true) placed before adec
@@ -63,7 +63,7 @@
 
    ------------------------------------------------------------------------
    SENDER IDENTITY: the wire format carries no party identity (FORMAT.md 2.6);
-   the sender is bound ONLY by sender_kid = h(spk(sk)) inside the signature. So
+   the sender is bound by sender_kid = h(spk(sk)) inside the signature AND in the KDF transcript. So
    we use the sender's verification key spk(sk) of type pkey as the logical
    sender label in BOTH the Send and Accept events. This binds NO MORE than the
    signed sender_kid already binds, and lets the non-injective agreement query
@@ -328,7 +328,7 @@ let Recv(suite: bitstring, xb: exponent, ks: kem_sk,
     let (=transcript, =claimed_kid) = checksign(sig, pkA) in
     let ss_c   = exp(epub, xb) in                      (* (g^e)^xb            *)
     let sspq   = decap(kem_ct, ks) in
-    let key    = kdf(ss_c, sspq, transcript) in
+    let key    = kdf(ss_c, sspq, (transcript, claimed_kid)) in
     let m      = sdec(ct, key) in
     event AcceptedSuite(pkA, rkid, suite);
     event Accept(pkA, rkid, transcript).
@@ -351,7 +351,7 @@ let SenderProc(sk: skey, pkA: pkey) =
     let kem_ct     = encap(sspq, pkB_kem, rcoins) in   (* ML-KEM encapsulation *)
     let sender_kid = hpk(pkA) in                          (* SIGMA own-id binding *)
     let transcript = (suite, flags0, rkid, epub, kem_ct, nonce) in
-    let key        = kdf(ss_c, sspq, transcript) in
+    let key        = kdf(ss_c, sspq, (transcript, sender_kid)) in
     let sig        = sign((transcript, sender_kid), sk) in
     let ct         = senc(secret_m, key) in
     event Send(pkA, rkid, transcript);

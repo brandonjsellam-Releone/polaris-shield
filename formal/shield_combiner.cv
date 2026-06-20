@@ -17,7 +17,7 @@
 
        K = HKDF(salt = "VORLATH-Shield-combiner/v2",
                 IKM  = u16(len ss_c) ‖ ss_c ‖ u16(len ss_pq) ‖ ss_pq,
-                info = label ‖ suite_id ‖ pre_auth,
+                info = label ‖ suite_id ‖ pre_auth ‖ sender_kid,
                 L    = 32)
 
    SECURITY_ARGUMENT.md §3/§4 abstracts "HKDF as a (dual-)PRF / extractor in the
@@ -28,7 +28,7 @@
 
      - ss_c        : classical ECDH shared secret (RFC 7748)            -> input1
      - ss_pq       : ML-KEM shared secret (FIPS 203)                    -> input2
-     - transcript  : info = label ‖ suite_id ‖ pre_auth, i.e. the full
+     - transcript  : info = label ‖ suite_id ‖ pre_auth ‖ sender_kid, i.e. the full
                      handshake transcript                              -> input3
 
    The u16 length-framing of the IKM is what makes the (ss_c ‖ ss_pq) encoding

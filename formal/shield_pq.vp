@@ -4,7 +4,7 @@
 // Mirrors tech/vorlath_shield/shield.py: a recipient with a STATIC hybrid identity
 // (classical X-DH + ML-KEM), a sender that contributes an ephemeral X-DH leg and an
 // ML-KEM encapsulation, an SP 800-56C-shaped combiner (HKDF over length-framed
-// ss_classical || ss_pq, with the suite_id + full transcript in info), a SIGMA-style
+// ss_classical || ss_pq, with the suite_id + transcript + sender_kid in info), a SIGMA-style
 // ML-DSA signature over the transcript + the signer's OWN key-id verified BEFORE
 // decapsulation, and AEAD over the whole header.
 //
@@ -59,8 +59,8 @@ principal Alice[
 	sender_kid = HASH(sa_pub)
 	sig = SIGN(sa, CONCAT(auth_ctx, pre_auth, sender_kid))   // SIGMA: signs OWN identity
 	sender_block = CONCAT(sender_kid, sa_pub, sig)
-	// SP 800-56C combiner: HKDF over length-framed (ssc || sspq); suite_id+transcript in info
-	key = HKDF(salt, CONCAT(ssc, m_pq), CONCAT(label, suite_id, pre_auth))
+	// SP 800-56C combiner: HKDF over length-framed (ssc || sspq); suite_id+transcript+sender_kid in info
+	key = HKDF(salt, CONCAT(ssc, m_pq), CONCAT(label, suite_id, pre_auth, sender_kid))
 	hdr1 = CONCAT(magic, ver, suite_id, flags)
 	hdr2 = CONCAT(rkid, eph_pub, kem_ct, nonce)
 	header = CONCAT(hdr1, hdr2, sender_block)
@@ -79,7 +79,7 @@ principal Bob[
 	bob_sender_block = CONCAT(bob_sender_kid, sa_pub, sig)
 	ssc_b = eph_pub^xb                     // classical ECDH leg recomputed
 	sspq_b = PKE_DEC(kb, kem_ct)           // ML-KEM decapsulation
-	key_b = HKDF(salt, CONCAT(ssc_b, sspq_b), CONCAT(label, suite_id, bob_pre_auth))
+	key_b = HKDF(salt, CONCAT(ssc_b, sspq_b), CONCAT(label, suite_id, bob_pre_auth, bob_sender_kid))
 	bob_hdr1 = CONCAT(magic, ver, suite_id, flags)
 	bob_hdr2 = CONCAT(rkid, eph_pub, kem_ct, nonce)
 	header_b = CONCAT(bob_hdr1, bob_hdr2, bob_sender_block)
