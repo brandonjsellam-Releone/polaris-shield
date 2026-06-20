@@ -129,9 +129,13 @@ jobs:
           # (hybrid secrecy, single-leg-break secrecy x2, downgrade resistance, sender-authentication,
           # KCI) must each be "is true"; the executable / non-vacuity query is the ONLY allowed
           # "is false" (it reports Accept is reachable). Any Error / "cannot be proved" fails.
-          out="$(opam exec -- proverif formal/shield.pv 2>&1)"
-          echo "$out" | grep -iE "^RESULT|Error|cannot be proved" | head -20
-          if echo "$out" | grep -qiE "Error|cannot be proved"; then echo "::error::ProVerif error or incomplete"; exit 1; fi
-          n_true="$(echo "$out" | grep -c 'is true' || true)"
-          if [ "$n_true" -lt 6 ]; then echo "::error::ProVerif: expected at least 6 'is true' results, got $n_true"; exit 1; fi
-          echo "ProVerif: $n_true security properties proved; non-vacuity reachable (4th lineage)."
+          # Two models: shield.pv (no-PPK, 6 true) + shield_ppk.pv (RFC 8784 with-PPK, 7 true).
+          total=0
+          for f in formal/shield.pv formal/shield_ppk.pv; do
+            out="$(opam exec -- proverif "$f" 2>&1)"
+            echo "== $f =="; echo "$out" | grep -iE "^RESULT|Error|cannot be proved" | head -20
+            if echo "$out" | grep -qiE "Error|cannot be proved"; then echo "::error::$f: ProVerif error or incomplete"; exit 1; fi
+            nt="$(echo "$out" | grep -c 'is true' || true)"; echo "$f: $nt true"; total=$((total + nt))
+          done
+          if [ "$total" -lt 13 ]; then echo "::error::ProVerif: expected >=13 'is true' (6 + 7), got $total"; exit 1; fi
+          echo "ProVerif: $total security properties proved across shield.pv + shield_ppk.pv (incl. RFC 8784 PPK)."

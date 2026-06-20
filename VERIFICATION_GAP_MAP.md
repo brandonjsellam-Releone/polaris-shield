@@ -47,11 +47,11 @@ PPK present/absent framing; suite pinned-by-key with `suite_id` bound in three p
 strip fails closed; PPK `FLAG_PPK` bound in all transcripts and backward-compatible byte-identical;
 verify-before-decapsulate; UKS / KCI resistance; expected-sender pinning; replay honestly scoped out.
 
-**PPK leg — now machine-proved (Tamarin, 2026-06-21).** The RFC 8784 PPK leg was the last "argued, not
+**PPK leg — now machine-proved (both unbounded lineages, 2026-06-21).** The RFC 8784 PPK leg was the last "argued, not
 proved" combiner leg. `formal/shield_ppk.spthy` (the with-PPK configuration) now carries
 `secrecy_under_both_kem_legs_break` — *both KEM legs broken, PPK intact => confidentiality* — verified
-UNBOUNDED in Tamarin (12/12 lemmas, CI-gated), alongside the hybrid/auth/downgrade/KCI properties
-re-proved in the with-PPK config. Lifting the same lemma into the ProVerif / Verifpal / CryptoVerif
+UNBOUNDED in BOTH Tamarin (`shield_ppk.spthy`, 12/12 lemmas) and ProVerif (`shield_ppk.pv`, `attacker(secret_m) ==> RevPPK` true), CI-gated, alongside the hybrid/auth/downgrade/KCI properties
+re-proved in the with-PPK config. Lifting it into the Verifpal / CryptoVerif
 lineages is the remaining step.
 
 ## The core distinction

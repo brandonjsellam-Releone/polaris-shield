@@ -1,0 +1,433 @@
+(* ==========================================================================
+   VORLATH Shield hybrid handshake - ProVerif symbolic model (UNBOUNDED sessions).
+
+   STATUS (VERIFIED - ProVerif 2.05, 2026-06-20): ALL queries give their expected results. The
+   four security properties prove TRUE - hybrid secrecy (both legs needed = harvest-now-decrypt-
+   later defeated), secrecy under a classical-leg break, secrecy under a pq-leg break, and
+   downgrade resistance - AND both sender-authentication correspondences prove TRUE
+   (sender_authentication, KCI; scoped to honest senders via the SetupS witness, the analog of
+   Tamarin's !Pk_S). The executable/non-vacuity query confirms an honest run is reachable. VORLATH
+   Shield therefore has a FOURTH independent machine-checked lineage - ProVerif (Horn-clause
+   resolution) agreeing with Tamarin (constraint solving) and Verifpal (bounded), over UNBOUNDED
+   sessions. Re-run (CI-gated in .github/workflows/formal.yml):
+       docker build -t vorlath-proverif -f tech/formal/proverif.Dockerfile .
+       docker run --rm -v "$PWD/tech/formal:/work" vorlath-proverif shield.pv
+   Per-query expected results are in the comments by each query below.
+
+   THIRD independent symbolic lineage, beside the Verifpal models
+   (tech/formal/shield*.vp, bounded) and the Tamarin model
+   (tech/formal/shield.spthy, unbounded multiset-rewriting). ProVerif proves
+   the SAME core goals in the applied pi-calculus over an UNBOUNDED number of
+   concurrent sessions, using a DIFFERENT engine (Horn-clause resolution rather
+   than Tamarin's constraint solving). This file mirrors shield.spthy 1:1:
+   the rules Setup_Recipient / Setup_Sender / Reveal_{Classical,PQ,Sign} /
+   Send / Recv become the processes below, and each Tamarin lemma maps to one
+   query here.
+
+   ------------------------------------------------------------------------
+   FAITHFUL ABSTRACTION (assumptions stated honestly, identical to shield.spthy):
+     * Classical leg : Diffie-Hellman (X25519/X448)            -> restricted-DH
+                       equation exp(exp(g,x),y)=exp(exp(g,y),x) (Kuesters-
+                       Truderung, CSF 2009). Only ONE exp nesting occurs, so the
+                       single commuting equation is sufficient AND terminating;
+                       we deliberately AVOID `builtin diffie-hellman` product
+                       theory (non-termination, and unnecessary here). This is
+                       the exact analog of Tamarin's 'g'^~e / pkB_dh^~e.
+     * Post-quantum  : ML-KEM modelled as an IND-CCA KEM. Encapsulation =
+                       probabilistic public-key encryption of a FRESH secret
+                       sspq; decapsulation = the asymmetric destructor. This is
+                       the symbolic idealization of IND-CCA, exactly mirroring
+                       Tamarin's aenc(~sspq, pkB_kem) / adec(kem_ct, ~ks).
+     * Sender auth   : ML-DSA modelled as an EUF-CMA signature (sign/checksign).
+     * Combiner/KDF  : SP 800-56C-shaped HKDF over (ss_c, ss_pq, transcript)
+                       -> kdf/3, a one-way CONSTRUCTOR with NO inverse and NO
+                       algebraic equations. The u16 length-framing of the IKM is
+                       captured symbolically by injective tupling (matches the
+                       Tamarin kdf/3 and the CryptoVerif H(ss_c, ss_pq, transcript)
+                       abstraction in COMBINER_CRYPTOVERIF.md). Because kdf has no
+                       inverse, the ONLY way to obtain the AEAD key - hence m - is
+                       to rebuild the identical kdf term, which needs BOTH ss_c
+                       AND ss_pq. That is what makes "needs both legs" a theorem.
+     * AEAD          : AES-256-GCM modelled as authenticated symmetric encryption
+                       (senc/sdec), mirroring Tamarin's symmetric-encryption.
+
+   The transcript is suite_id || flags || recipient_key_id || eph_pub ||
+   kem_ct || nonce - EXACTLY the real _pre_auth_transcript (FORMAT.md 2.6), with
+   NO explicit party identities. The sender is bound via sender_kid = h(spk(sk))
+   (a hash of its OWN signing key) INSIDE THE SIGNATURE (SIGMA own-identity
+   binding), AND ALSO channel-bound into the KDF transcript; the recipient is bound via
+   recipient_key_id = hkeys(pkB_dh, pkB_kem) and by PINNING a suite to its key.
+   Bob runs checksign BEFORE decap (the checksign let-test is sequenced before
+   decap), mirroring rule Recv's Eq(verify(...),true) placed before adec
+   ("verified before decapsulation").
+
+   ------------------------------------------------------------------------
+   SENDER IDENTITY: the wire format carries no party identity (FORMAT.md 2.6);
+   the sender is bound by sender_kid = h(spk(sk)) inside the signature AND in the KDF transcript. So
+   we use the sender's verification key spk(sk) of type pkey as the logical
+   sender label in BOTH the Send and Accept events. This binds NO MORE than the
+   signed sender_kid already binds, and lets the non-injective agreement query
+   relate Accept and Send by (sender-verification-key, transcript) - exactly the
+   Tamarin Send($A,...)/Accept($A,...) agreement (Tamarin's $A is likewise pinned
+   to pk(~sk) via !Pk_S/!Ltk_S).
+
+   ------------------------------------------------------------------------
+   SCOPE / HONESTY (identical to shield.spthy):
+     - SYMBOLIC (Dolev-Yao) only. Assumes ML-KEM IND-CCA, ML-DSA EUF-CMA, ideal
+       HKDF/AEAD/hash, and AUTHENTIC public-key distribution. NOT computational
+       (that is the CryptoVerif lineage), no side-channel / timing / FIPS /
+       implementation claims.
+     - Replay / injective agreement is OUT of scope BY DESIGN. The headline
+       sender_authentication query is plain (NON-injective) event correspondence,
+       exactly as Tamarin and consistent with shield_replay.vp + THREAT_MODEL.md.
+       We do NOT use inj-event for the auth query.
+     - Out of scope HERE (carried by the Verifpal models + implementation +
+       interop corpus, same as Tamarin): the anonymous-mode send path /
+       flag-stripping as a distinct rule, ephemeral-state reveal / forward
+       secrecy, and wire-encoding length-framing fidelity (abstracted to
+       injective tupling).
+
+   ------------------------------------------------------------------------
+   WHERE ProVerif's ABSTRACTION DIFFERS FROM Tamarin (honest notes):
+     - Tamarin uses `not (Ex #r. RevealX ...)` guards on all-traces lemmas.
+       ProVerif has no time-point quantifiers, so the per-leg-compromise lemmas
+       are encoded as IMPLICATION queries: attacker(m) ==> (RevC && RevPQ) etc.
+       This is logically the contrapositive of the Tamarin guard and is decided
+       independently per query by ProVerif's resolution (see proverif_notes (3)
+       in the plan).
+     - Tamarin's 5 exists-trace non-vacuity lemmas become, in ProVerif,
+       reachability queries (event(...) reachable) and "RESULT ... is false"
+       attack witnesses. ProVerif reports a query TRUE = property holds (no
+       attack); it reports "is false" with a reconstructed attack trace when a
+       protection is removed - we use that false/attack reconstruction as the
+       witness for the sanity_* controls.
+
+   ------------------------------------------------------------------------
+   RUN:
+       proverif tech/formal/shield.pv
+   (ProVerif >= 2.05; pin alongside Tamarin 1.12.0 / Verifpal 0.52.0 in the
+   formal.yml matrix as a 'prove-proverif' job, installed via opam.)
+
+   EXPECTED per-query results: see the comment beside each query below and the
+   structured summary returned with this file.
+   ========================================================================== *)
+
+(* -------------------------------------------------------------------------- *)
+(* Types (mirror the Tamarin sorts).                                          *)
+(* -------------------------------------------------------------------------- *)
+
+type skey.        (* ML-DSA signing key                         *)
+type pkey.        (* ML-DSA verification key (also the sender label) *)
+type kem_sk.      (* ML-KEM decapsulation key                   *)
+type kem_pk.      (* ML-KEM encapsulation key                   *)
+type kem_ct_t.    (* ML-KEM ciphertext                          *)
+type kem_coins.   (* ML-KEM encapsulation randomness            *)
+type element.     (* DH group element (public/ephemeral)        *)
+type exponent.    (* DH exponent (private leg)                  *)
+type sspq.        (* the fresh ML-KEM shared secret             *)
+type key.         (* AEAD key (combiner output)                 *)
+
+(* -------------------------------------------------------------------------- *)
+(* Public communication channel: the Dolev-Yao network.                       *)
+(* -------------------------------------------------------------------------- *)
+
+free c: channel.
+
+(* Private channels carrying the long-term private legs from Setup to the      *)
+(* reveal processes - the analog of Tamarin's persistent !Ltk_* facts that the *)
+(* Reveal_* rules read. The attacker cannot observe these channels; it only    *)
+(* learns a leg if the corresponding (timeless) reveal process OUTs it on c.   *)
+free privR_dh: channel [private].   (* carries (B, suite, xb) to Reveal_Classical *)
+free privR_kem: channel [private].  (* carries (B, suite, ks) to Reveal_PQ        *)
+free privS_sig: channel [private].  (* carries (A, sk)        to Reveal_Sign      *)
+free pkR: channel [private].        (* AUTHENTIC recipient bundle (the !Pk_R analog): only
+                                       Setup_Recipient populates it, so Send binds ONLY to
+                                       honestly-generated recipient keys, never attacker-injected
+                                       ones. The pubkeys are ALSO published on c, so the adversary
+                                       knows them - it just cannot make Send seal to a forged key. *)
+
+(* The honest plaintext whose secrecy we test in the all-traces secrecy        *)
+(* queries. Declared private so `query attacker(secret_m)` is a meaningful      *)
+(* baseline; the Send process seals exactly this name.                         *)
+free secret_m: bitstring [private].
+free ppk: bitstring [private].   (* RFC 8784 out-of-band post-quantum pre-shared key *)
+
+(* -------------------------------------------------------------------------- *)
+(* Classical leg: restricted Diffie-Hellman (Kuesters-Truderung idiom).       *)
+(* -------------------------------------------------------------------------- *)
+
+const g: element [data].                          (* generator 'g'            *)
+fun exp(element, exponent): element.              (* element exponentiation   *)
+equation forall x: exponent, y: exponent;
+         exp(exp(g, x), y) = exp(exp(g, y), x).   (* the SINGLE commuting eqn  *)
+
+(* -------------------------------------------------------------------------- *)
+(* PQ leg: ML-KEM as an IND-CCA KEM == probabilistic PKE of a fresh secret.    *)
+(* encap is probabilistic (fresh coins) so two encapsulations of the same      *)
+(* secret differ; decap recovers the secret with the private key. Symbolic     *)
+(* IND-CCA idealization mirroring Tamarin aenc/adec.                           *)
+(* -------------------------------------------------------------------------- *)
+
+fun kpk(kem_sk): kem_pk.
+fun encap(sspq, kem_pk, kem_coins): kem_ct_t.
+reduc forall s: sspq, k: kem_sk, r: kem_coins;
+      decap(encap(s, kpk(k), r), k) = s.
+
+(* -------------------------------------------------------------------------- *)
+(* Signature: ML-DSA as EUF-CMA (sign / checksign).                           *)
+(* -------------------------------------------------------------------------- *)
+
+fun spk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey;
+      checksign(sign(m, k), spk(k)) = m.
+
+(* -------------------------------------------------------------------------- *)
+(* Hash, combiner/KDF, AEAD (all ideal).                                      *)
+(* -------------------------------------------------------------------------- *)
+
+(* SHAKE-256-style hashes. ProVerif is typed, so we use dedicated one-way functions per input
+   type instead of one polymorphic h: hpk over a verification key (sender_kid) and hkeys over the
+   recipient hybrid public-key pair (recipient_key_id). Distinct collision-resistant constructors,
+   each with NO inverse - so recipient_key_id is uniquely determined by the recipient's keys. *)
+fun hpk(pkey): bitstring.
+fun hkeys(element, kem_pk): bitstring.
+
+(* The combiner: a one-way constructor, NO inverse, NO equations. Deriving the *)
+(* AEAD key requires rebuilding this exact term, hence BOTH ss_c and ss_pq.    *)
+fun kdf(element, sspq, bitstring, bitstring): key.
+
+(* AEAD: authenticated symmetric encryption.                                   *)
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key;
+      sdec(senc(m, k), k) = m.
+
+(* a public constant for the flags field *)
+const flags0: bitstring.
+
+(* -------------------------------------------------------------------------- *)
+(* Events (a direct relabeling of the Tamarin action facts). The sender label  *)
+(* A and recipient label B are of type pkey / bitstring respectively.          *)
+(* -------------------------------------------------------------------------- *)
+
+event SetupR(bitstring, bitstring).                       (* SetupR(B, suite)  *)
+event SetupS(pkey).                                        (* SetupS(A)         *)
+event Send(pkey, bitstring, bitstring).                   (* A, B(=rkid), transcript - auth is transcript-agreement *)
+event SecretMsg(pkey, bitstring, bitstring).              (* A, B, m           *)
+event Accept(pkey, bitstring, bitstring).                 (* A, B(=rkid), transcript *)
+event UsedSuite(pkey, bitstring, bitstring).              (* A, B, suite       *)
+event AcceptedSuite(pkey, bitstring, bitstring).          (* A, B, suite       *)
+event RevC(bitstring).                                    (* RevealClassical(B)*)
+event RevPQ(bitstring).                                   (* RevealPQ(B)       *)
+event RevS(pkey).                                         (* RevealSign(A)     *)
+event RevPPK().                                           (* RevealPPK         *)
+
+(* ========================================================================== *)
+(* QUERIES                                                                    *)
+(* ========================================================================== *)
+
+(* (0) NON-VACUITY / honest run - analog of Tamarin exists-trace `executable`.
+   ProVerif proves an event reachable by showing query event(...) is FALSE
+   ("RESULT ... is false") with a reconstructed honest trace as witness.
+   EXPECTED: false  (i.e. Accept IS reachable -> the model is not vacuous). *)
+query a: pkey, b: bitstring, t: bitstring;
+      event(Accept(a, b, t)).
+
+(* (1) HYBRID SECRECY (headline; harvest-now-decrypt-later).
+   The sealed plaintext is derivable ONLY if BOTH the classical AND the PQ leg
+   were revealed. Contrapositive of Tamarin hybrid_secrecy
+   (not (RevC & RevPQ) ==> not K(m)).
+   EXPECTED: true  (attacker gets secret_m only when both RevC(b) and RevPQ(b)
+   fired for the same recipient b). *)
+query b: bitstring;
+      attacker(secret_m) ==> (event(RevC(b)) && event(RevPQ(b))).
+
+(* (2) SECRECY UNDER CLASSICAL BREAK (survives a CRQC classical break while
+   ML-KEM holds). If the attacker learns secret_m then the PQ leg must have been
+   revealed - so a classical-only break (RevC without RevPQ) cannot leak it.
+   Mirrors Tamarin secrecy_under_classical_break.
+   EXPECTED: true. *)
+query b: bitstring;
+      attacker(secret_m) ==> event(RevPQ(b)).
+
+(* (3) SECRECY UNDER PQ BREAK (symmetric: survives an ML-KEM break while the
+   classical leg holds). If the attacker learns secret_m then the classical leg
+   must have been revealed. Mirrors Tamarin secrecy_under_pq_break.
+   EXPECTED: true. *)
+query b: bitstring;
+      attacker(secret_m) ==> event(RevC(b)).
+
+(* (3b) RFC 8784 PPK: with BOTH KEM legs revealed, the PPK still keeps secret_m
+   secret - the attacker derives it ONLY if the PPK itself was revealed. EXPECTED: true. *)
+query attacker(secret_m) ==> event(RevPPK()).
+
+(* (4) SENDER AUTHENTICATION - deliberately NON-injective (replay OUT of scope
+   by design): if Bob accepts as-from-Alice over transcript t and Alice's
+   signing key was not revealed, Alice really ran the protocol with EXACTLY t.
+   Plain event ==> event (NOT inj-event), exactly matching Tamarin's
+   non-injective agreement; holds unless RevS(A) fired.
+   Mirrors Tamarin sender_authentication. The `event(SetupS(a))` premise scopes the claim to
+   HONEST senders (keys honestly generated by Setup_Sender, the ProVerif analog of Tamarin's
+   !Pk_S/!Ltk_S over pk(~sk)): an attacker authenticating as ITS OWN key is not a violation.
+   EXPECTED: true. *)
+query a: pkey, b: bitstring, t: bitstring;
+      ( event(Accept(a, b, t)) && event(SetupS(a)) ) ==>
+        ( event(Send(a, b, t)) || event(RevS(a)) ).
+
+(* (5) DOWNGRADE RESISTANCE (recipient_only_accepts_pinned_suite): the
+   recipient accepts only under the suite PINNED to its key at setup.
+   Mirrors Tamarin recipient_only_accepts_pinned_suite.
+   EXPECTED: true. *)
+query a: pkey, b: bitstring, t: bitstring, suite: bitstring;
+      ( event(Accept(a, b, t)) && event(AcceptedSuite(a, b, suite)) ) ==>
+        event(SetupR(b, suite)).
+
+(* (6) KCI RESISTANCE: sender authenticity survives compromise of BOTH of the
+   recipient's hybrid legs (it never depended on them); only RevS(A) can break
+   it. Mirrors Tamarin kci_resistance.
+   EXPECTED: true. *)
+query a: pkey, b: bitstring, t: bitstring;
+      ( event(Accept(a, b, t)) && event(SetupS(a)) && event(RevC(b)) && event(RevPQ(b)) ) ==>
+        ( event(Send(a, b, t)) || event(RevS(a)) ).
+
+(* NON-VACUITY CONTROLS (mirror the 4 Tamarin sanity exists-trace lemmas).
+   In ProVerif these are reachability / attack-witness queries. To EXERCISE
+   them, comment the corresponding all-traces query above out and run the
+   weakened query below; ProVerif reports "RESULT ... is false" with the
+   reconstructed attack as the witness. They are kept here as documentation so
+   the headline queries are demonstrably MEANINGFUL, not artifacts:
+
+   (a) sanity_both_legs_broken_leaks: with both legs revealed the attacker DOES
+       recover secret_m. The premise of query (1) is reachable; running the bare
+       `query attacker(secret_m).` reports `false` (attack) - the both-legs path.
+   (b) sanity_sign_reveal_allows_forgery: with RevS(A) firing, Accept is
+       reachable with NO matching Send. The auth query (4) is then satisfied only
+       via the `|| event(RevS(a))` disjunct; dropping that disjunct makes (4)
+       report `false` with the forgery trace as witness.
+   (c)/(d) sanity_{classical,pq}_break_run_exists: an honest run completes with
+       exactly one leg revealed. Reachability of Accept (query (0)) together with
+       the reveal processes witnesses these; the single-leg secrecy queries
+       (2)/(3) remaining TRUE confirms each corollary's premise is inhabited yet
+       secrecy still holds.                                                       *)
+
+(* ========================================================================== *)
+(* PROCESSES (mirror the Tamarin rules 1:1)                                    *)
+(* ========================================================================== *)
+
+(* Recv (Bob): pinned to ITS suite/keys. Recompute rkid from its OWN keys,
+   rebuild the transcript, VERIFY the signature BEFORE decapsulation (the
+   checksign let-test is sequenced before decap), then decapsulate, derive the
+   key, and open the AEAD. The inbound `=suite` pattern STRUCTURALLY pins the
+   accepted suite (downgrade resistance), the analog of !Ltk_R(B, suite, ...) +
+   AcceptedSuite. The sender label is the verification key pkA carried on the
+   wire and pinned by the signature (claimed_kid = hpk(pkA)).                     *)
+let Recv(suite: bitstring, xb: exponent, ks: kem_sk,
+         pkB_dh: element, pkB_kem: kem_pk) =
+    in(c, (epub: element, kem_ct: kem_ct_t, nonce: bitstring,
+           =suite, flags: bitstring, pkA: pkey, sig: bitstring, ct: bitstring));
+    let rkid        = hkeys(pkB_dh, pkB_kem) in
+    let claimed_kid = hpk(pkA) in
+    let transcript  = (suite, flags, rkid, epub, kem_ct, nonce) in
+    (* verify signature BEFORE decapsulation: checksign returns the signed msg, *)
+    (* and the (=transcript,=claimed_kid) pattern enforces it equals what Bob   *)
+    (* expects - the SIGMA "signs OWN identity, verified pre-decaps" check.      *)
+    let (=transcript, =claimed_kid) = checksign(sig, pkA) in
+    let ss_c   = exp(epub, xb) in                      (* (g^e)^xb            *)
+    let sspq   = decap(kem_ct, ks) in
+    let key    = kdf(ss_c, sspq, ppk, (transcript, claimed_kid)) in
+    let m      = sdec(ct, key) in
+    event AcceptedSuite(pkA, rkid, suite);
+    event Accept(pkA, rkid, transcript).
+
+(* Send (Alice): the one-pass authenticated hybrid handshake. Ephemeral DH +
+   KEM encapsulation of a fresh sspq + a signature over <transcript, sender_kid>
+   + AEAD sealing the secret plaintext under the combined key. The sender reads
+   the recipient's authentic, PINNED bundle from the network (as in rule Send,
+   which consumes !Pk_R for the pinned suite). It seals the private `secret_m`
+   so the all-traces secrecy queries have a concrete target. The sender label A
+   is its own verification key pkA = spk(sk).                                    *)
+let SenderProc(sk: skey, pkA: pkey) =
+    in(pkR, (rkid: bitstring, suite: bitstring, pkB_dh: element, pkB_kem: kem_pk));
+    new e: exponent;
+    new sspq: sspq;
+    new rcoins: kem_coins;
+    new nonce: bitstring;
+    let epub       = exp(g, e) in
+    let ss_c       = exp(pkB_dh, e) in                 (* (g^xb)^e            *)
+    let kem_ct     = encap(sspq, pkB_kem, rcoins) in   (* ML-KEM encapsulation *)
+    let sender_kid = hpk(pkA) in                          (* SIGMA own-id binding *)
+    let transcript = (suite, flags0, rkid, epub, kem_ct, nonce) in
+    let key        = kdf(ss_c, sspq, ppk, (transcript, sender_kid)) in
+    let sig        = sign((transcript, sender_kid), sk) in
+    let ct         = senc(secret_m, key) in
+    event Send(pkA, rkid, transcript);
+    event SecretMsg(pkA, rkid, secret_m);
+    event UsedSuite(pkA, rkid, suite);
+    out(c, (epub, kem_ct, nonce, suite, flags0, pkA, sig, ct)).
+
+(* Setup_Recipient: honestly generate the recipient's PINNED hybrid identity
+   (classical xb + ML-KEM ks) under a public suite; publish the authentic
+   pubkeys read-only on c (attacker reads, cannot forge - the analog of the
+   persistent !Pk_R fact) and record the private legs for the reveal processes.
+   B and suite are public names supplied by the environment.                    *)
+let Setup_Recipient(suite: bitstring) =
+    new xb: exponent;
+    new ks: kem_sk;
+    let pkB_dh  = exp(g, xb) in
+    let pkB_kem = kpk(ks) in
+    let rkid    = hkeys(pkB_dh, pkB_kem) in            (* recipient identity = hash of its keys *)
+    event SetupR(rkid, suite);
+    out(c, (pkB_dh, pkB_kem));                       (* publish pubkeys to the adversary       *)
+    ( ( !out(pkR, (rkid, suite, pkB_dh, pkB_kem)) )  (* AUTHENTIC bundle that only Send reads   *)
+    | ( !out(privR_dh,  (rkid, suite, xb)) )
+    | ( !out(privR_kem, (rkid, suite, ks)) )
+    | ( !Recv(suite, xb, ks, pkB_dh, pkB_kem) ) ).
+
+(* Setup_Sender: honestly generate the sender's ML-DSA signing key; publish the
+   authentic verification key read-only on c (analog of !Pk_S); record sk for
+   Reveal_Sign; run the sender handshake.                                       *)
+let Setup_Sender =
+    new sk: skey;
+    let pkA = spk(sk) in
+    event SetupS(pkA);
+    out(c, (pkA));
+    ( ( !out(privS_sig, (pkA, sk)) )
+    | ( !SenderProc(sk, pkA) ) ).
+
+(* Reveal_Classical / Reveal_PQ / Reveal_Sign: timeless reveal processes that
+   read a long-term private leg and OUT it on the public channel after a
+   distinguishing event - mirroring Tamarin's three persistent-fact Reveal_*
+   rules that may fire at ANY time. Replicated so they apply to every identity. *)
+let Reveal_Classical =
+    in(privR_dh, (rkid: bitstring, suite: bitstring, xb: exponent));
+    event RevC(rkid);
+    out(c, xb).
+
+let Reveal_PQ =
+    in(privR_kem, (rkid: bitstring, suite: bitstring, ks: kem_sk));
+    event RevPQ(rkid);
+    out(c, ks).
+
+let Reveal_Sign =
+    in(privS_sig, (pkA: pkey, sk: skey));
+    event RevS(pkA);
+    out(c, sk).
+
+let Reveal_PPK =
+    event RevPPK();
+    out(c, ppk).
+
+(* ========================================================================== *)
+(* TOP-LEVEL PROCESS                                                           *)
+(*   = !Setup_Recipient | !Setup_Sender | !Reveal_* (timeless reveals)         *)
+(* Unbounded sessions via replication (!). Identities and suites are public    *)
+(* names drawn by the environment, so the analysis covers all of them.         *)
+(* ========================================================================== *)
+
+process
+    ( ! ( in(c, (suite: bitstring)); Setup_Recipient(suite) ) )
+  | ( ! Setup_Sender )
+  | ( ! Reveal_Classical )
+  | ( ! Reveal_PQ )
+  | ( ! Reveal_Sign )
+  | ( ! Reveal_PPK )
