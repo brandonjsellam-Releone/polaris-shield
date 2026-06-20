@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vorlath-shield"
-version = "2.0.0"
+version = "2.1.0"
 description = "VORLATH Shield — algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation."
 readme = "README.md"
 requires-python = ">=3.10"

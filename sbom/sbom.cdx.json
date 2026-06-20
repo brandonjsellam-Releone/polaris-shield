@@ -5,15 +5,15 @@
   "metadata": {
     "component": {
       "type": "application",
-      "name": "polaris-shield",
+      "name": "vorlath-shield",
       "version": "2.0.0",
-      "purl": "pkg:pypi/polaris-shield@2.0.0",
+      "purl": "pkg:pypi/vorlath-shield@2.0.0",
       "licenses": [
         {
           "expression": "Apache-2.0"
         }
       ],
-      "description": "POLARIS Shield - algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation.",
+      "description": "VORLATH Shield - algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation.",
       "externalReferences": [
         {
           "type": "website",
@@ -27,7 +27,7 @@
     },
     "tools": [
       {
-        "vendor": "POLARIS",
+        "vendor": "VORLATH",
         "name": "make_sbom.py",
         "version": "1.0"
       }

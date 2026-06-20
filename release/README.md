@@ -19,12 +19,12 @@ produces the same digest. That digest is the single value CI signs.
 
 ```bash
 # 1. Reproduce the digest from your own checkout
-cd tech && python release/make_bundle.py
+python release/make_bundle.py
 sha256sum -c release/RELEASE_MANIFEST.sha256      # every file: OK
 
 # 2. Confirm the signature over the published bundle (keyless cosign / Sigstore)
 cosign verify-blob \
-  --certificate-identity-regexp 'github.com/brandonjsellam-Releone/vorlath-shield' \
+  --certificate-identity-regexp 'github.com/brandonjsellam-Releone/(polaris|vorlath)-shield' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --signature   vorlath-shield-bundle.sig \
   --certificate vorlath-shield-bundle.pem \
