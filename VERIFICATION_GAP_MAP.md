@@ -10,6 +10,47 @@ name the seams before a reviewer does.
 > (how to re-run all of it). Nothing below is hidden elsewhere; this page collects every
 > abstraction gap in one place and ranks them.
 
+## Independent adversarial review (2026-06-21)
+
+Two independent passes were run against v2.1.0 and are recorded here in full, **including what they got
+wrong** — because a review you can't see the misses of isn't evidence.
+
+- A **6-lens adversarial agent workflow** (combiner injectivity, suite-0x03 downgrade, RFC 8784 PPK,
+  sender_kid binding, implementation bugs, formal-model faithfulness); each material finding was
+  re-checked against the actual code by independent skeptics.
+- A **7-model cryptographer council** (Grok, DeepSeek, Hermes, Gemini, Mistral, watsonx, Perplexity),
+  each asked independently where they would attack first.
+
+**Result: no cryptographic break, from either pass.** Findings that did NOT survive verification:
+
+- *"`info` (HKDF FixedInfo) is not self-injective — a byte can cross the unframed `pre_auth‖sender_kid`
+  boundary."* **Refuted by the code:** every `pre_auth` field is fixed-length (`suite_id`/`flags` 1 B,
+  `recipient_key_id` 32 B, `eph_pub`/`kem_ct` fixed *per suite*, `nonce` 12 B) and `sender_kid` is
+  0 B / 32 B pinned by `FLAG_AUTHENTICATED`. With every length pinned by the self-describing
+  `suite_id`+`flags`, no byte can move across any boundary — `info` *is* injective on its own; the AEAD
+  AAD is a second layer, not the only one.
+- *"Downgrade / signature-bypass via decapsulate-first"* (two council members): built on a misreading —
+  the protocol **verifies the signature BEFORE decapsulation** (SIGMA), `suite_id` is in the **signed**
+  `pre_auth`, and the recipient key **pins** the suite, so those vectors can't be constructed.
+- *Precision probes* ("0x01 isn't CNSA 2.0"; "HKDF is the two-step KDF, not one-step") were **already
+  correct in the docs** (0x01 is labelled "FIPS-standard"; `SECURITY_ARGUMENT.md` already states "the
+  two-step extract-then-expand KDF of NIST SP 800-56C").
+
+**The one finding that DID survive — and is now closed.** The verified `sender_kid` is channel-bound
+into the HKDF `info` in code, but the symbolic models had bound it in the *signature only*. That
+model-vs-code coverage gap was closed by lifting `sender_kid` into the KDF transcript in **all four**
+lineages and re-proving (FORMAL_COVERAGE goal 10; Tamarin 11/11, ProVerif all-queries, both Verifpal
+models *All pass*, CryptoVerif *All proved* — verified in Docker).
+
+Confirmed sound by the review: combiner IKM injectivity incl. the zero-length classical leg of 0x03 and
+PPK present/absent framing; suite pinned-by-key with `suite_id` bound in three places; classical-leg
+strip fails closed; PPK `FLAG_PPK` bound in all transcripts and backward-compatible byte-identical;
+verify-before-decapsulate; UKS / KCI resistance; expected-sender pinning; replay honestly scoped out.
+
+**Next formal target (disclosed):** the **RFC 8784 PPK leg is argued, not yet machine-proved** — the
+combiner is injective over it (length-framed), but no lineage yet carries a "both KEM legs broken,
+PPK intact => confidentiality" lemma. That is the next gap to close, the same way `sender_kid` just was.
+
 ## The core distinction
 
 - The **proofs** (Verifpal, Tamarin, ProVerif, CryptoVerif - four independent machine-checked
