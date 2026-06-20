@@ -1,11 +1,11 @@
-# POLARIS Shield — audit-readiness package
+# VORLATH Shield — audit-readiness package
 
 A self-administered onramp for an external **cryptographic design review** and a **NIST CAVP**
 engagement (paid, or grant-funded — see [`../GRANTS.md`](../GRANTS.md)). The point is to make a paid
 review *cheap and fast*: an auditor should not have to bill hours discovering the attack surface,
 the evidence, or how to reproduce it — it is all here, and we name our own weak seams first.
 
-This package is **honest about maturity**: POLARIS Shield is a real, runnable **reference
+This package is **honest about maturity**: VORLATH Shield is a real, runnable **reference
 implementation** in pure Python. It is **NOT** FIPS 140-3 / CAVP validated and **NOT** side-channel
 hardened. Nothing here claims government endorsement.
 
@@ -23,7 +23,7 @@ hardened. Nothing here claims government endorsement.
   (self-describing key bundles, SHAKE-256 key-ids, scrypt at-rest wrap), and the **streaming AEAD**
   (per-chunk nonce binding a counter + final-flag).
 
-**Out of scope:** the speculative BOREALIS citadel concept (not code); the underlying NIST-primitive
+**Out of scope:** the speculative VALYON citadel concept (not code); the underlying NIST-primitive
 libraries beyond the cross-implementation differential below; anything claiming a deployed system.
 
 ## 2. Evidence already in place (start from here, not from zero)

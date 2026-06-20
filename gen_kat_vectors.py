@@ -1,4 +1,4 @@
-"""Generate deterministic KAT reference vectors for the POLARIS Shield conformance harness.
+"""Generate deterministic KAT reference vectors for the VORLATH Shield conformance harness.
 
 These are DETERMINISM / REGRESSION vectors: fixed seeds driven through the FIPS 203/204
 deterministic internals, pinned so any drift in kyber-py/dilithium-py is caught byte-for-byte.
@@ -17,8 +17,8 @@ D = bytes(range(32))
 Z = bytes(range(32, 64))
 M = bytes([0xA5]) * 32
 ZETA = bytes(range(32))
-MSG = b"POLARIS KAT vector"
-CTX = b"POLARIS-Shield/sig/v1"
+MSG = b"VORLATH KAT vector"
+CTX = b"VORLATH-Shield/sig/v1"
 
 
 def _h(b: bytes) -> str:

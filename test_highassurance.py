@@ -10,15 +10,15 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pytest
 
-from polaris_shield import highassurance as ha
-from polaris_shield import shield
+from vorlath_shield import highassurance as ha
+from vorlath_shield import shield
 
 FAST = 0x02  # SLH-DSA-SHAKE-128s
 
 
 def test_slh_dsa_roundtrip():
     pub, priv = ha.generate_high_assurance_keys(FAST)
-    msg = b"BOREALIS / POLARIS long-lived evidence root"
+    msg = b"VALYON / VORLATH long-lived evidence root"
     sig = ha.high_assurance_sign(priv, msg)
     assert ha.high_assurance_verify(pub, msg, sig)
     assert not ha.high_assurance_verify(pub, b"forged", sig)

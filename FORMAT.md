@@ -1,9 +1,9 @@
-# POLARIS Shield v2 — wire-format specification
+# VORLATH Shield v2 — wire-format specification
 
 This document specifies, **byte for byte**, the on-the-wire and on-disk formats produced and
-consumed by the POLARIS Shield reference implementation. Every field below is derived directly
-from the source: `polaris_shield/shield.py` (envelopes, streams, KEM/signing key bundles) and
-`polaris_shield/highassurance.py` (the high-assurance SLH-DSA key bundle and the dual signature).
+consumed by the VORLATH Shield reference implementation. Every field below is derived directly
+from the source: `vorlath_shield/shield.py` (envelopes, streams, KEM/signing key bundles) and
+`vorlath_shield/highassurance.py` (the high-assurance SLH-DSA key bundle and the dual signature).
 Function names are cited inline so each claim can be checked against the code.
 
 This is a **project convention**, not a standardized interoperable protocol. As stated in
@@ -48,7 +48,7 @@ A reader therefore can never be walked off the end of the buffer by a malicious 
 
 ---
 
-## 2. The single-shot envelope — `PLSH`
+## 2. The single-shot envelope — `VRSH`
 
 Produced by `encrypt()` (and its alias `encrypt_authenticated()`), consumed by `decrypt()` /
 `decrypt_authenticated()`. The wire layout is exactly the `header + struct.pack(">I", len(sealed)) +
@@ -57,7 +57,7 @@ sealed` returned at the end of `encrypt()`.
 ### 2.1 Top-level structure
 
 ```
-PLSH envelope = header || u32 sealed_len || sealed
+VRSH envelope = header || u32 sealed_len || sealed
 ```
 
 where `sealed = AES-256-GCM ciphertext || 16-byte GCM tag` and `header` is the byte string built in
@@ -73,7 +73,7 @@ header = MAGIC || VERSION || suite_id || flags
 
 | Offset | Size | Field | Value / source |
 |---|---|---|---|
-| 0 | 4 | `MAGIC` | ASCII `"PLSH"` (`MAGIC = b"PLSH"`) |
+| 0 | 4 | `MAGIC` | ASCII `"VRSH"` (`MAGIC = b"VRSH"`) |
 | 4 | 1 | `VERSION` | `0x02` (`VERSION = 2`) |
 | 5 | 1 | `suite_id` | `0x01`, `0x02`, or `0x03` — selects the cipher suite (section 6) |
 | 6 | 1 | `flags` | bitfield: `FLAG_AUTHENTICATED = 0x01` (sender block present), `FLAG_PPK = 0x02` (AEAD key mixes an out-of-band RFC 8784 pre-shared key) |
@@ -121,7 +121,7 @@ Verified against a live `encrypt()` call (total envelope length 1710 bytes for a
 
 | Offset | Size | Field |
 |---|---|---|
-| 0 | 4 | `MAGIC` = `PLSH` |
+| 0 | 4 | `MAGIC` = `VRSH` |
 | 4 | 1 | `VERSION` = `0x02` |
 | 5 | 1 | `suite_id` = `0x02` |
 | 6 | 1 | `flags` = `0x00` |
@@ -172,8 +172,8 @@ key  = HKDF(algorithm = suite.hkdf_hash(), length = 32,
             salt = _COMBINER_SALT, info = info).derive(ikm)
 ```
 
-with `_COMBINER_LABEL = b"POLARIS-Shield/2 hybrid-kem combiner"` and
-`_COMBINER_SALT  = b"POLARIS-Shield-combiner/v2"`. The HKDF **info (FixedInfo)** carries the
+with `_COMBINER_LABEL = b"VORLATH-Shield/2 hybrid-kem combiner"` and
+`_COMBINER_SALT  = b"VORLATH-Shield-combiner/v2"`. The HKDF **info (FixedInfo)** carries the
 domain-separation label, the `suite_id` byte, and the full `pre_auth` transcript. The input keying
 material is the **length-framed** concatenation of the classical ECDH secret and the post-quantum
 ML-KEM secret (SP 800-56C-shaped combiner — the u16 length prefixes make the concatenation injective
@@ -221,11 +221,11 @@ sender_block = TLV(sender_kid) || TLV(sender_signing_public) || TLV(signature)
 | # | Sub-TLV | Value | Length (suite 0x02 / 0x01) |
 |---|---|---|---|
 | 1 | `sender_kid` | 32-byte SHAKE-256 key-id of the sender's ML-DSA signing public bundle | 32 / 32 |
-| 2 | `sender_signing_public` | the sender's full `PLSK` sig-pub key bundle (section 5) | 2635 / 1995 |
+| 2 | `sender_signing_public` | the sender's full `VRSK` sig-pub key bundle (section 5) | 2635 / 1995 |
 | 3 | `signature` | ML-DSA signature over `pre_auth || sender_kid`, context `AUTH_CTX` | 4627 / 3309 |
 
 The signature is produced by `s.sig.sign(sk_raw, pre_auth + sender_kid, AUTH_CTX)` with
-`AUTH_CTX = b"POLARIS-Shield/auth/v2"`. **The signer binds its own key-id into the signed message**
+`AUTH_CTX = b"VORLATH-Shield/auth/v2"`. **The signer binds its own key-id into the signed message**
 (`pre_auth + sender_kid`) — this is the SIGMA-style identity binding that prevents a captured
 signature from being re-attributed to a different sender (unknown-key-share / misbinding).
 
@@ -251,7 +251,7 @@ docstring; replay resistance is an application-layer concern.
 
 ---
 
-## 4. The streaming format — `PLST`
+## 4. The streaming format — `VRST`
 
 Produced by `seal_stream()`, consumed by `open_stream()`. For large messages encrypted as an ordered
 sequence of independently-sealed AEAD chunks, where dropping the last chunk (truncation), reordering,
@@ -260,7 +260,7 @@ or dropping any chunk is detected on open — not just bit-flips.
 ### 4.1 Top-level structure
 
 ```
-PLST stream = header || chunk[0] || chunk[1] || ... || chunk[last]
+VRST stream = header || chunk[0] || chunk[1] || ... || chunk[last]
 chunk[i]    = u32 blob_len || blob          # blob = AES-256-GCM ciphertext || 16-byte tag
 ```
 
@@ -276,7 +276,7 @@ header = STREAM_MAGIC || VERSION || suite_id || flags
 
 | Offset | Size | Field | Value / source |
 |---|---|---|---|
-| 0 | 4 | `STREAM_MAGIC` | ASCII `"PLST"` (`STREAM_MAGIC = b"PLST"`) |
+| 0 | 4 | `STREAM_MAGIC` | ASCII `"VRST"` (`STREAM_MAGIC = b"VRST"`) |
 | 4 | 1 | `VERSION` | `0x02` |
 | 5 | 1 | `suite_id` | `0x01` / `0x02` |
 | 6 | 1 | `flags` | always `0x00` here — `seal_stream` sets `flags = 0` (the stream format has no authenticated-sender mode) |
@@ -341,18 +341,18 @@ comes entirely from the per-chunk AEAD with counter+final binding.
 
 ---
 
-## 5. Key-bundle format — `PLSK`
+## 5. Key-bundle format — `VRSK`
 
 All long-term key material (KEM and signing, public and private) shares one self-describing bundle
 format, built by `_serialize_key()` and parsed by `_parse_key()`.
 
 ```
-PLSK bundle = KEY_MAGIC || KEY_VERSION || suite_id || role || TLV(key_id) || TLV(part_0) || TLV(part_1) ...
+VRSK bundle = KEY_MAGIC || KEY_VERSION || suite_id || role || TLV(key_id) || TLV(part_0) || TLV(part_1) ...
 ```
 
 | Offset | Size | Field | Value / source |
 |---|---|---|---|
-| 0 | 4 | `KEY_MAGIC` | ASCII `"PLSK"` (`KEY_MAGIC = b"PLSK"`) |
+| 0 | 4 | `KEY_MAGIC` | ASCII `"VRSK"` (`KEY_MAGIC = b"VRSK"`) |
 | 4 | 1 | `KEY_VERSION` | `0x02` (`KEY_VERSION = 2`) |
 | 5 | 1 | `suite_id` | `0x01` / `0x02`, binding the key to its suite |
 | 6 | 1 | `role` | one of `1,2,3,4` (below) |
@@ -395,8 +395,8 @@ Example total bundle lengths (verified live, suite 0x02): KEM public `1669` byte
 (SHAKE-256 with a 32-byte / 256-bit output — the apex-tier fingerprint width noted in the source
 comment). It is computed over a domain-separated set of parts:
 
-- KEM public: `_shake16(b"PLSK-kem-pub", bytes([suite_id]), x_pub, ek)`;
-- signing public: `_shake16(b"PLSK-sig-pub", bytes([suite_id]), pk)`.
+- KEM public: `_shake16(b"VRSK-kem-pub", bytes([suite_id]), x_pub, ek)`;
+- signing public: `_shake16(b"VRSK-sig-pub", bytes([suite_id]), pk)`.
 
 The **private** bundle reuses the **same** `key_id` as its matching public bundle (both are built in
 the same `generate_*` call from the one `kid`), which is how `decrypt()` matches a private key to an
@@ -407,7 +407,7 @@ role 3), and `suite_of(bundle)` (returns the `Suite` from `bundle[5]` without pa
 
 ### 5.3 At-rest passphrase wrapping — `PLSW` (CLI only)
 
-The CLI (`polaris_shield/__main__.py`) optionally wraps a private bundle at rest. This is **not**
+The CLI (`vorlath_shield/__main__.py`) optionally wraps a private bundle at rest. This is **not**
 part of the cryptographic core in `shield.py`; it is a storage envelope applied by `_wrap_private()`
 when `--passphrase` is given, and transparently unwrapped by `_maybe_unwrap()` (which is a no-op if
 the leading magic is absent). The KEK is derived with scrypt and the bundle sealed with AES-256-GCM.
@@ -436,7 +436,7 @@ Defined in `highassurance.py`. Opt-in SLH-DSA (FIPS 205) diversification, **not*
 
 ### 6.1 SLH-DSA key bundle — `PLHA`
 
-Built by `generate_high_assurance_keys()` and parsed by `_parse_ha()`. Unlike `PLSK`, this bundle has
+Built by `generate_high_assurance_keys()` and parsed by `_parse_ha()`. Unlike `VRSK`, this bundle has
 **no TLV framing** — the key digest is the entire remaining tail, because SLH-DSA digests are
 fixed-size per parameter set.
 
@@ -448,20 +448,20 @@ PLHA bundle = _HA_MAGIC || param_id || role || digest
 |---|---|---|---|
 | 0 | 4 | `_HA_MAGIC` | ASCII `"PLHA"` |
 | 4 | 1 | `param_id` | `0x01` = SLH-DSA-SHAKE-256s (default), `0x02` = SLH-DSA-SHAKE-128s |
-| 5 | 1 | `role` | `_ROLE_PUB = 0` or `_ROLE_PRIV = 1` (note: **different role numbering than `PLSK`**) |
+| 5 | 1 | `role` | `_ROLE_PUB = 0` or `_ROLE_PRIV = 1` (note: **different role numbering than `VRSK`**) |
 | 6 | rest | `digest` | `kp.pub.digest()` for public, `kp.digest()` for private (raw `slhdsa` serialization) |
 
 `_parse_ha()` rejects `len < 6`, wrong magic, or wrong role, returning `(param_id, bundle[6:])`. The
 param-set table is `_HA_PARAMS = {0x01: shake_256s, 0x02: shake_128s}`; `DEFAULT_HA_ID = 0x01`.
 
 `high_assurance_sign()` signs `ctx + b"\x00" + message` (default `ctx = HA_CTX =
-b"POLARIS-Shield/ha-sig/v1"`); the `\x00` separator domain-separates the context from the message.
+b"VORLATH-Shield/ha-sig/v1"`); the `\x00` separator domain-separates the context from the message.
 `high_assurance_verify()` mirrors this and returns `False` on any exception.
 
 ### 6.2 Dual signature — `PLDU`
 
 Built by `dual_sign()`, which signs the **same message** with both the lattice ML-DSA leg
-(`shield.sign`, default context `SIG_CTX = b"POLARIS-Shield/sig/v1"`) and the hash-based SLH-DSA leg.
+(`shield.sign`, default context `SIG_CTX = b"VORLATH-Shield/sig/v1"`) and the hash-based SLH-DSA leg.
 Both component signatures are length-framed with a u32:
 
 ```
@@ -554,7 +554,7 @@ different sender (unknown-key-share / misbinding).
 
 ### 8.4 Anti-truncation, anti-reorder, anti-drop (streaming)
 
-Each `PLST` chunk's 12-byte nonce is `base_nonce(7) || counter(4) || final(1)`, and the same
+Each `VRST` chunk's 12-byte nonce is `base_nonce(7) || counter(4) || final(1)`, and the same
 `counter || final` is **also** appended to that chunk's AAD (`header || ctr`). The receiver
 recomputes the counter and final-flag from each blob's **position in the received stream**:
 
@@ -599,9 +599,9 @@ reading of the AEAD.
 
 | Magic | Format | Defined in | Section |
 |---|---|---|---|
-| `PLSH` | single-shot envelope | `shield.py` (`MAGIC`) | 2 |
-| `PLST` | streaming envelope | `shield.py` (`STREAM_MAGIC`) | 4 |
-| `PLSK` | KEM / signing key bundle | `shield.py` (`KEY_MAGIC`) | 5 |
+| `VRSH` | single-shot envelope | `shield.py` (`MAGIC`) | 2 |
+| `VRST` | streaming envelope | `shield.py` (`STREAM_MAGIC`) | 4 |
+| `VRSK` | KEM / signing key bundle | `shield.py` (`KEY_MAGIC`) | 5 |
 | `PLSW` | at-rest passphrase-wrapped private key (CLI) | `__main__.py` (`_WRAP_MAGIC`) | 5.3 |
 | `PLHA` | SLH-DSA high-assurance key bundle | `highassurance.py` (`_HA_MAGIC`) | 6.1 |
 | `PLDU` | dual ML-DSA + SLH-DSA signature | `highassurance.py` (`_DUAL_MAGIC`) | 6.2 |
@@ -613,7 +613,7 @@ only for contrast.
 
 ---
 
-*Specification derived byte-for-byte from `polaris_shield/shield.py` and
-`polaris_shield/highassurance.py`. This is a reference implementation and a project convention, not a
+*Specification derived byte-for-byte from `vorlath_shield/shield.py` and
+`vorlath_shield/highassurance.py`. This is a reference implementation and a project convention, not a
 standardized protocol and not a FIPS-validated module — see [SECURITY.md](SECURITY.md) and
 [THREAT_MODEL.md](THREAT_MODEL.md).*

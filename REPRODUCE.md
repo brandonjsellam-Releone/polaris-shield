@@ -1,4 +1,4 @@
-# POLARIS Shield — reproduce every assurance claim yourself
+# VORLATH Shield — reproduce every assurance claim yourself
 
 > The point of this page: turn *"CI-gated"* into *"a stranger can independently confirm it."*
 > Everything below runs from a clean checkout. Budget ~30 minutes (most of it is the one-time
@@ -39,8 +39,8 @@ you do not have to install them by hand. That image runs **both symbolic lineage
 497-test suite**, exiting non-zero on any failure:
 
 ```bash
-docker build -t polaris-shield-verify -f Dockerfile .
-docker run --rm polaris-shield-verify        # Verifpal + Tamarin + 497 tests; non-zero on any failure
+docker build -t vorlath-shield-verify -f Dockerfile .
+docker run --rm vorlath-shield-verify        # Verifpal + Tamarin + 497 tests; non-zero on any failure
 ```
 
 The CryptoVerif **computational** proof is *not* in that image (it needs an OCaml/opam toolchain);

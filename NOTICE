@@ -1,4 +1,4 @@
-POLARIS Shield
+VORLATH Shield
 Copyright [USER TO PROVIDE: yyyy, copyright holder]
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
@@ -10,6 +10,6 @@ and ML-DSA (FIPS 204).
 It depends on third-party open-source libraries (see requirements.txt /
 pyproject.toml and the CycloneDX SBOM under sbom/), each under its own license.
 
-POLARIS Shield is a REFERENCE IMPLEMENTATION. It is NOT FIPS 140-3 validated and
+VORLATH Shield is a REFERENCE IMPLEMENTATION. It is NOT FIPS 140-3 validated and
 is NOT side-channel hardened. "CNSA 2.0" denotes the algorithm set, not a validated
 module. Read SECURITY.md and THREAT_MODEL.md before any real use.

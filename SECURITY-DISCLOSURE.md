@@ -1,11 +1,11 @@
-# Coordinated vulnerability disclosure — POLARIS Shield
+# Coordinated vulnerability disclosure — VORLATH Shield
 
-POLARIS Shield is a **reference implementation** published as part of the speculative
-BOREALIS / POLARIS concept. It is **not** a funded product and carries **no SLA**. This policy
+VORLATH Shield is a **reference implementation** published as part of the speculative
+VALYON / VORLATH concept. It is **not** a funded product and carries **no SLA**. This policy
 exists so that a researcher who finds a defect has a clear, good-faith path to report it — and
 so a diligence reviewer can see that one exists.
 
-> Separate-project note: this concerns POLARIS Shield only. It is unaffiliated with the
+> Separate-project note: this concerns VORLATH Shield only. It is unaffiliated with the
 > separate TRELYAN project. Do not route TRELYAN reports here.
 
 ## Scope
@@ -22,8 +22,8 @@ issues in upstream dependencies (report those upstream, then tell us so we can p
 
 ## How to report
 
-1. Email **security@borealispolaris.io** (primary) or **brandon.sellam@gmail.com** (fallback).
-   Use the subject prefix `[POLARIS-SHIELD]`.
+1. Email **security@valyonvorlath.io** (primary) or **brandon.sellam@gmail.com** (fallback).
+   Use the subject prefix `[VORLATH-SHIELD]`.
 2. Include: the property violated (cite `THREAT_MODEL.md` / `FORMAL_COVERAGE.md` where you can),
    a minimal reproducing case, and the affected `bundle_digest` from
    `release/RELEASE_MANIFEST.json` if known.

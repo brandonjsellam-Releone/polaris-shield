@@ -1,4 +1,4 @@
-# POLARIS Shield runtime deps. PQ libraries pinned EXACTLY so the deterministic
+# VORLATH Shield runtime deps. PQ libraries pinned EXACTLY so the deterministic
 # KAT vectors (kat_vectors.json) cannot silently drift across versions.
 kyber-py==1.2.0
 dilithium-py==1.4.0

@@ -1,5 +1,5 @@
 (* =====================================================================
-   POLARIS Shield -- mechanizing the COMBINED-KEM IND-CCA composition seam,
+   VORLATH Shield -- mechanizing the COMBINED-KEM IND-CCA composition seam,
    reduced to the CLASSICAL leg's hardness (Gap-DH on X25519/X448).
    CryptoVerif 2.12, ORACLE front end.
 
@@ -14,14 +14,14 @@
    (shield_combiner.cv's Kq case). Together the two files show the combined hybrid
    KEM is IND-CCA if EITHER leg is hard.
 
-   Run (in the polaris-cryptoverif Docker image):
+   Run (in the vorlath-cryptoverif Docker image):
        opam exec -- cryptoverif -in oracles shield_combiner_dh.cv
    This file uses the ORACLE front end (Oxxx() := ...), so it MUST be run with
    "-in oracles" (CryptoVerif otherwise defaults to the channel front end and
    errors with a syntax error). A byte-identical .ocv copy is kept beside it (the
    .ocv extension selects the oracle front end without the flag).
 
-   *** VERIFIED 2026-06-20 (polaris-cryptoverif image, CryptoVerif 2.12) ***
+   *** VERIFIED 2026-06-20 (vorlath-cryptoverif image, CryptoVerif 2.12) ***
    Confirmed by an independent run of THIS file (both the .cv via -in oracles and
    the byte-identical .ocv): the tool emitted "All queries proved" with the RESULT
    bound  4 * PDistRerandom + 2 * Adv_GDH(time_1, 2 * qH)  for Kstar. The Adv_GDH

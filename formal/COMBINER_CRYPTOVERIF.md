@@ -1,7 +1,7 @@
-# Mechanized (CryptoVerif) — POLARIS Shield hybrid combiner
+# Mechanized (CryptoVerif) — VORLATH Shield hybrid combiner
 
 This note records a **machine-checked computational** proof, in
-**CryptoVerif 2.12**, of the core security claim of the POLARIS Shield hybrid
+**CryptoVerif 2.12**, of the core security claim of the VORLATH Shield hybrid
 combiner: the derived session key is indistinguishable from a fresh random key
 under single-leg compromise. It is the artifact named as future work in
 [`../SECURITY_ARGUMENT.md`](../SECURITY_ARGUMENT.md) §6.
@@ -24,13 +24,13 @@ end is selected by extension without a flag.
 ### How to reproduce
 
 ```bash
-# from a checkout, with the polaris-cryptoverif Docker image:
+# from a checkout, with the vorlath-cryptoverif Docker image:
 MSYS_NO_PATHCONV=1 docker run --rm \
-  -v "<repo>/tech/formal:/work:ro" polaris-cryptoverif \
+  -v "<repo>/tech/formal:/work:ro" vorlath-cryptoverif \
   bash -lc 'opam exec -- cryptoverif -in oracles /work/shield_combiner.cv'
 
 MSYS_NO_PATHCONV=1 docker run --rm \
-  -v "<repo>/tech/formal:/work:ro" polaris-cryptoverif \
+  -v "<repo>/tech/formal:/work:ro" vorlath-cryptoverif \
   bash -lc 'opam exec -- cryptoverif -in oracles /work/shield_kemdem.cv'
 ```
 
@@ -40,10 +40,10 @@ MSYS_NO_PATHCONV=1 docker run --rm \
 ## What the model encodes
 
 The Shield key is (see [`../SECURITY_ARGUMENT.md`](../SECURITY_ARGUMENT.md) §1 and
-`polaris_shield/shield.py:_derive_key`):
+`vorlath_shield/shield.py:_derive_key`):
 
 ```
-K = HKDF(salt = "POLARIS-Shield-combiner/v2",
+K = HKDF(salt = "VORLATH-Shield-combiner/v2",
          IKM  = u16(len ss_c) ‖ ss_c ‖ u16(len ss_pq) ‖ ss_pq,
          info = label ‖ suite_id ‖ pre_auth,
          L    = 32)

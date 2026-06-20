@@ -1,4 +1,4 @@
-"""Property-based / fuzz tests for the POLARIS Shield core (hypothesis).
+"""Property-based / fuzz tests for the VORLATH Shield core (hypothesis).
 
 These complement the example-based suite in test_shield.py by fuzzing the Shield's
 INVARIANTS over wide, randomly-generated inputs:
@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from polaris_shield import shield
+from vorlath_shield import shield
 
 # Suite 0x01 = X25519 + ML-KEM-768 + ML-DSA-65 -- the fastest suite; the invariants under
 # test are suite-independent, so we fuzz on the cheap one to keep the run well under 20s.
@@ -156,8 +156,8 @@ _UNCAUGHT = (TypeError, IndexError, struct.error, KeyError, AttributeError, Over
 # Arbitrary bytes, plus bytes that start with the right magic so the fuzzer gets PAST the magic
 # check and exercises the TLV / length-prefix parser deeply.
 arbitrary_bytes = st.binary(min_size=0, max_size=512)
-plsh_prefixed = st.builds(lambda tail: b"PLSH" + tail, st.binary(min_size=0, max_size=512))
-plst_prefixed = st.builds(lambda tail: b"PLST" + tail, st.binary(min_size=0, max_size=512))
+plsh_prefixed = st.builds(lambda tail: b"VRSH" + tail, st.binary(min_size=0, max_size=512))
+plst_prefixed = st.builds(lambda tail: b"VRST" + tail, st.binary(min_size=0, max_size=512))
 
 
 @_FAST

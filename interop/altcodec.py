@@ -1,7 +1,7 @@
-"""altcodec — an INDEPENDENT decoder for the POLARIS Shield ``PLSH`` envelope.
+"""altcodec — an INDEPENDENT decoder for the VORLATH Shield ``VRSH`` envelope.
 
 This module is written **only from the wire-format specification** in
-``tech/FORMAT.md``. It deliberately does **not** import ``polaris_shield``'s
+``tech/FORMAT.md``. It deliberately does **not** import ``vorlath_shield``'s
 envelope, combiner, KDF, or key-bundle code: the whole point is to cross-validate
 the spec with a second, separately-coded parsing + combiner + KDF + AEAD-open path
 (which shares the same primitive libraries — see below). The cross-check proves
@@ -15,8 +15,8 @@ uses — ``kyber-py`` (ML-KEM decapsulation), ``dilithium-py`` (ML-DSA verify), 
 ``cryptography`` (X25519/X448 ECDH, HKDF, AES-256-GCM). Re-implementing lattice
 math from scratch is out of scope; re-implementing the *format* is the point.
 
-Scope: decode-only of the single-shot ``PLSH`` envelope (anonymous and
-authenticated) for both suites 0x01 and 0x02. Streaming (``PLST``) decode is a
+Scope: decode-only of the single-shot ``VRSH`` envelope (anonymous and
+authenticated) for both suites 0x01 and 0x02. Streaming (``VRST``) decode is a
 bonus and is provided as ``open_stream`` below. Everything is derived from the
 sections of FORMAT.md cited inline.
 
@@ -40,9 +40,9 @@ from kyber_py.ml_kem import ML_KEM_768, ML_KEM_1024
 # --------------------------------------------------------------------------- #
 # Constants — every value is transcribed from FORMAT.md (section cited).
 # --------------------------------------------------------------------------- #
-_MAGIC = b"PLSH"            # FORMAT.md §2.2 / §9
-_STREAM_MAGIC = b"PLST"     # FORMAT.md §4.1 / §9
-_KEY_MAGIC = b"PLSK"        # FORMAT.md §5
+_MAGIC = b"VRSH"            # FORMAT.md §2.2 / §9
+_STREAM_MAGIC = b"VRST"     # FORMAT.md §4.1 / §9
+_KEY_MAGIC = b"VRSK"        # FORMAT.md §5
 _VERSION = 0x02             # FORMAT.md §2.2 (VERSION = 2)
 _KEY_VERSION = 0x02         # FORMAT.md §5
 _NONCE_LEN = 12             # FORMAT.md §2.3 (NONCE = 12)
@@ -56,9 +56,9 @@ _ROLE_SIG_PUB = 3
 _ROLE_SIG_PRIV = 4
 
 # Domain-separation labels / salt / context — FORMAT.md §2.6 and §3.
-_COMBINER_LABEL = b"POLARIS-Shield/2 hybrid-kem combiner"
-_COMBINER_SALT = b"POLARIS-Shield-combiner/v2"
-_AUTH_CTX = b"POLARIS-Shield/auth/v2"
+_COMBINER_LABEL = b"VORLATH-Shield/2 hybrid-kem combiner"
+_COMBINER_SALT = b"VORLATH-Shield-combiner/v2"
+_AUTH_CTX = b"VORLATH-Shield/auth/v2"
 _STREAM_NONCE_PREFIX = 7    # FORMAT.md §4.2 (_NONCE_PREFIX = 7)
 
 
@@ -111,7 +111,7 @@ class AltCodecError(ValueError):
 def _suite(suite_id: int) -> _Suite:
     s = _SUITES.get(suite_id)
     if s is None:
-        raise AltCodecError(f"unknown POLARIS Shield suite_id 0x{suite_id:02x}")
+        raise AltCodecError(f"unknown VORLATH Shield suite_id 0x{suite_id:02x}")
     return s
 
 
@@ -130,11 +130,11 @@ def _read_tlv(buf: bytes, off: int) -> tuple[bytes, int]:
 
 
 # --------------------------------------------------------------------------- #
-# Key-bundle parsing — FORMAT.md §5. Independent of polaris_shield._parse_key.
+# Key-bundle parsing — FORMAT.md §5. Independent of vorlath_shield._parse_key.
 # --------------------------------------------------------------------------- #
 def _parse_key(bundle: bytes, expect_role: int) -> tuple[int, bytes, list[bytes]]:
     if len(bundle) < 7 or bundle[:4] != _KEY_MAGIC:
-        raise AltCodecError("not a POLARIS Shield key bundle")
+        raise AltCodecError("not a VORLATH Shield key bundle")
     if bundle[4] != _KEY_VERSION:
         raise AltCodecError(f"unsupported key version {bundle[4]}")
     suite_id, role = bundle[5], bundle[6]
@@ -151,13 +151,13 @@ def _parse_key(bundle: bytes, expect_role: int) -> tuple[int, bytes, list[bytes]
 def _sig_key_id(public_bundle: bytes) -> bytes:
     """SHAKE-256 fingerprint of a signing public bundle — FORMAT.md §5.2.
 
-    ``signing public: _shake16(b"PLSK-sig-pub", bytes([suite_id]), pk)``.
+    ``signing public: _shake16(b"VRSK-sig-pub", bytes([suite_id]), pk)``.
     Recomputed independently here so the altcodec can pin ``expected_sender``.
     """
     suite_id, _kid, parts = _parse_key(public_bundle, _ROLE_SIG_PUB)
     (pk,) = parts
     h = hashlib.shake_256()
-    h.update(b"PLSK-sig-pub")
+    h.update(b"VRSK-sig-pub")
     h.update(bytes([suite_id]))
     h.update(pk)
     return h.digest(_KEY_ID_LEN)
@@ -185,13 +185,13 @@ def _derive_key(suite: _Suite, ss_classical: bytes, ss_pq: bytes,
 
 
 # --------------------------------------------------------------------------- #
-# Single-shot PLSH decode — FORMAT.md §2 and §3.
+# Single-shot VRSH decode — FORMAT.md §2 and §3.
 # --------------------------------------------------------------------------- #
 def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
                   expected_sender_public: bytes | None = None) -> bytes:
-    """Independently decode + decrypt a ``PLSH`` envelope, or raise on tamper.
+    """Independently decode + decrypt a ``VRSH`` envelope, or raise on tamper.
 
-    Mirrors the contract of ``polaris_shield.decrypt`` but is built only from
+    Mirrors the contract of ``vorlath_shield.decrypt`` but is built only from
     FORMAT.md. If ``expected_sender_public`` is supplied, the envelope MUST be
     authenticated by exactly that sender (FORMAT.md §3, step 4).
     """
@@ -201,7 +201,7 @@ def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
 
     # --- fixed prefix (FORMAT.md §2.2) ---
     if len(envelope) < 7 or envelope[:4] != _MAGIC:
-        raise AltCodecError("not a POLARIS Shield envelope")
+        raise AltCodecError("not a VORLATH Shield envelope")
     if envelope[4] != _VERSION:
         raise AltCodecError(f"unsupported Shield envelope version {envelope[4]}")
     suite_id, flags = envelope[5], envelope[6]
@@ -269,10 +269,10 @@ def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
 
 
 # --------------------------------------------------------------------------- #
-# Streaming PLST decode — FORMAT.md §4 (BONUS; same independent construction).
+# Streaming VRST decode — FORMAT.md §4 (BONUS; same independent construction).
 # --------------------------------------------------------------------------- #
 def open_stream(envelope: bytes, recipient_private_bundle: bytes) -> bytes:
-    """Independently decode + decrypt a ``PLST`` stream, or raise on tamper.
+    """Independently decode + decrypt a ``VRST`` stream, or raise on tamper.
 
     Implements the counter+final anti-truncation/anti-reorder construction from
     FORMAT.md §4.3/§4.4. Bonus scope; the corpus does not depend on it.
@@ -282,7 +282,7 @@ def open_stream(envelope: bytes, recipient_private_bundle: bytes) -> bytes:
     envelope = bytes(envelope)
 
     if len(envelope) < 7 or envelope[:4] != _STREAM_MAGIC:
-        raise AltCodecError("not a POLARIS Shield stream")
+        raise AltCodecError("not a VORLATH Shield stream")
     if envelope[4] != _VERSION:
         raise AltCodecError(f"unsupported Shield stream version {envelope[4]}")
     suite_id, flags = envelope[5], envelope[6]

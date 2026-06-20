@@ -1,4 +1,4 @@
-"""POLARIS Shield v2 — real post-quantum hybrid security (FIPS 203 + 204, CNSA 2.0).
+"""VORLATH Shield v2 — real post-quantum hybrid security (FIPS 203 + 204, CNSA 2.0).
 
 Algorithm-agile hybrid KEM (X25519/X448 + ML-KEM-768/1024), SP 800-56C combiner,
 AES-256-GCM AEAD, ML-DSA-65/87 signatures, optional authenticated handshake, and a

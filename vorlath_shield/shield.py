@@ -1,4 +1,4 @@
-"""POLARIS Shield v2 — a real, runnable, algorithm-agile post-quantum hybrid core.
+"""VORLATH Shield v2 — a real, runnable, algorithm-agile post-quantum hybrid core.
 
 Implements the CNSA 2.0 hybrid pattern on finalized U.S. federal standards, with a
 self-describing wire format, downgrade-resistant suite negotiation, an SP 800-56C
@@ -46,9 +46,9 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dilithium_py.ml_dsa import ML_DSA_65, ML_DSA_87
 from kyber_py.ml_kem import ML_KEM_768, ML_KEM_1024
 
-MAGIC = b"PLSH"
+MAGIC = b"VRSH"
 VERSION = 2
-KEY_MAGIC = b"PLSK"
+KEY_MAGIC = b"VRSK"
 KEY_VERSION = 2
 
 NONCE = 12                      # AES-256-GCM nonce length
@@ -57,10 +57,10 @@ FLAG_AUTHENTICATED = 0x01       # envelope carries a sender signature
 FLAG_PPK = 0x02                 # AEAD key additionally mixes an out-of-band pre-shared key (RFC 8784-style)
 
 # domain-separation labels (never reused across contexts)
-_COMBINER_LABEL = b"POLARIS-Shield/2 hybrid-kem combiner"
-_COMBINER_SALT = b"POLARIS-Shield-combiner/v2"
-SIG_CTX = b"POLARIS-Shield/sig/v1"     # detached document signatures
-AUTH_CTX = b"POLARIS-Shield/auth/v2"   # authenticated-handshake signatures
+_COMBINER_LABEL = b"VORLATH-Shield/2 hybrid-kem combiner"
+_COMBINER_SALT = b"VORLATH-Shield-combiner/v2"
+SIG_CTX = b"VORLATH-Shield/sig/v1"     # detached document signatures
+AUTH_CTX = b"VORLATH-Shield/auth/v2"   # authenticated-handshake signatures
 
 # key-bundle roles
 _ROLE_KEM_PUB, _ROLE_KEM_PRIV, _ROLE_SIG_PUB, _ROLE_SIG_PRIV = 1, 2, 3, 4
@@ -156,13 +156,13 @@ SUITES = {
 DEFAULT_SUITE_ID = 0x02
 # Back-compat constant: human-readable description of the default (apex) suite.
 # "CNSA-2.0" here denotes the ALGORITHM SET, not a validated/certified module.
-SUITE = ("POLARIS-Shield/2 " + SUITES[DEFAULT_SUITE_ID].name).encode()
+SUITE = ("VORLATH-Shield/2 " + SUITES[DEFAULT_SUITE_ID].name).encode()
 
 
 def _suite(suite_id: int) -> Suite:
     s = SUITES.get(suite_id)
     if s is None:
-        raise ValueError(f"unknown POLARIS Shield suite_id 0x{suite_id:02x}")
+        raise ValueError(f"unknown VORLATH Shield suite_id 0x{suite_id:02x}")
     return s
 
 
@@ -201,7 +201,7 @@ def _serialize_key(suite_id: int, role: int, key_id: bytes, *parts: bytes) -> by
 
 def _parse_key(bundle: bytes, expect_role: int) -> tuple[int, bytes, list[bytes]]:
     if len(bundle) < 7 or bundle[:4] != KEY_MAGIC:
-        raise ValueError("not a POLARIS Shield key bundle")
+        raise ValueError("not a VORLATH Shield key bundle")
     if bundle[4] != KEY_VERSION:
         raise ValueError(f"unsupported key version {bundle[4]}")
     suite_id, role = bundle[5], bundle[6]
@@ -229,7 +229,7 @@ def sig_key_id(public_bundle: bytes) -> bytes:
 def suite_of(bundle: bytes) -> Suite:
     """Return the Suite a key bundle is bound to (without revealing private parts)."""
     if len(bundle) < 7 or bundle[:4] != KEY_MAGIC:
-        raise ValueError("not a POLARIS Shield key bundle")
+        raise ValueError("not a VORLATH Shield key bundle")
     return _suite(bundle[5])
 
 
@@ -240,7 +240,7 @@ def generate_recipient_keys(suite_id: int = DEFAULT_SUITE_ID) -> tuple[bytes, by
     eph = s.ecdh.generate_private()
     x_pub, x_priv = s.ecdh.public_raw(eph), s.ecdh.private_raw(eph)
     ek, dk = s.kem.keygen()
-    kid = _shake16(b"PLSK-kem-pub", bytes([suite_id]), x_pub, ek)
+    kid = _shake16(b"VRSK-kem-pub", bytes([suite_id]), x_pub, ek)
     public_bundle = _serialize_key(suite_id, _ROLE_KEM_PUB, kid, x_pub, ek)
     private_bundle = _serialize_key(suite_id, _ROLE_KEM_PRIV, kid, x_priv, dk)
     return public_bundle, private_bundle
@@ -250,7 +250,7 @@ def generate_signing_keys(suite_id: int = DEFAULT_SUITE_ID) -> tuple[bytes, byte
     """ML-DSA signing identity for `suite_id`. Returns (public_bundle, private_bundle)."""
     s = _suite(suite_id)
     pk, sk = s.sig.keygen()
-    kid = _shake16(b"PLSK-sig-pub", bytes([suite_id]), pk)
+    kid = _shake16(b"VRSK-sig-pub", bytes([suite_id]), pk)
     public_bundle = _serialize_key(suite_id, _ROLE_SIG_PUB, kid, pk)
     private_bundle = _serialize_key(suite_id, _ROLE_SIG_PRIV, kid, sk)
     return public_bundle, private_bundle
@@ -344,7 +344,7 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
     if not isinstance(envelope, (bytes, bytearray)):
         raise ValueError("envelope must be bytes")
     if len(envelope) < 7 or envelope[:4] != MAGIC:
-        raise ValueError("not a POLARIS Shield envelope")
+        raise ValueError("not a VORLATH Shield envelope")
     if envelope[4] != VERSION:
         raise ValueError(f"unsupported Shield envelope version {envelope[4]}")
     suite_id, flags = envelope[5], envelope[6]
@@ -461,7 +461,7 @@ def encrypt_classical_only(plaintext: bytes, recipient_public_bundle: bytes) -> 
 
 
 # ----------------------------------------------------------------- streaming AEAD (large files)
-STREAM_MAGIC = b"PLST"
+STREAM_MAGIC = b"VRST"
 DEFAULT_CHUNK = 64 * 1024
 _NONCE_PREFIX = 7   # base_nonce; full per-chunk nonce = prefix(7) || counter(4) || final(1) = 12
 
@@ -507,7 +507,7 @@ def open_stream(envelope: bytes, recipient_private_bundle: bytes) -> bytes:
     if not isinstance(envelope, (bytes, bytearray)):
         raise ValueError("envelope must be bytes")
     if len(envelope) < 7 or envelope[:4] != STREAM_MAGIC:
-        raise ValueError("not a POLARIS Shield stream")
+        raise ValueError("not a VORLATH Shield stream")
     if envelope[4] != VERSION:
         raise ValueError(f"unsupported Shield stream version {envelope[4]}")
     suite_id, flags = envelope[5], envelope[6]

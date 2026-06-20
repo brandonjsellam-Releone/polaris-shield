@@ -1,11 +1,11 @@
-# POLARIS Shield — standards positioning & combiner justification
+# VORLATH Shield — standards positioning & combiner justification
 
 A reviewer's first question is *"why this exact stack and not the obvious academic /
 standards-track alternative?"* This note answers it up front, with citations to the **final**
 NIST FIPS (203/204/205, effective Aug 2024), the live IETF *hybrid* drafts, and the federal
 mandates, so the design choices read as deliberate rather than ad hoc.
 
-> Scope: this is a *positioning* note, not a conformance claim. POLARIS Shield is a reference
+> Scope: this is a *positioning* note, not a conformance claim. VORLATH Shield is a reference
 > implementation; it is not a standardized protocol and not a validated module (see `SECURITY.md`).
 
 ## 1. The algorithm set is CNSA 2.0 (not a bespoke choice)
@@ -23,7 +23,7 @@ The AEAD key is derived from **both** the ECDH secret and the ML-KEM secret, len
 bound to the full handshake transcript (`suite_id‖flags‖recipient_key_id‖eph_pub‖kem_ct‖nonce`).
 Design rationale and the alternatives considered:
 
-| Choice | What POLARIS Shield does | Why, vs. the alternative |
+| Choice | What VORLATH Shield does | Why, vs. the alternative |
 |---|---|---|
 | **KEM combiner** | length-framed `ss_classical ‖ ss_pq` into an SP 800-56C-shaped KDF, transcript as FixedInfo | Matches the **dual-PRF / X-Wing (GHP18)** robustness argument: the output stays pseudorandom if *either* KEM is IND-CCA. A bare concatenation without length-framing is the classic mix-and-match pitfall; framing + domain separation closes it. |
 | **Transcript binding** | whole transcript signed *and* used as AEAD AAD *and* in the KDF `info` | Makes downgrade/mix-and-match unreachable (machine-checked: `FORMAL_COVERAGE.md` rows 4–5), the same defence TLS 1.3 hybrid binds via the transcript hash. |
@@ -32,12 +32,12 @@ Design rationale and the alternatives considered:
 
 ## 3. Relationship to the live IETF / NIST hybrid drafts
 
-POLARIS Shield is an envelope convention, deliberately *aligned in spirit* with — but not
+VORLATH Shield is an envelope convention, deliberately *aligned in spirit* with — but not
 claiming conformance to — the standards-track hybrid constructions a reviewer will know:
 
 - **X-Wing** (`draft-connolly-cfrg-xwing-kem`) — the canonical X25519+ML-KEM-768 hybrid KEM;
-  the security intuition POLARIS's combiner reuses (one-leg-break robustness via a PRF-modeled
-  combiner). POLARIS generalises it to an algorithm-agile suite (adds the CNSA-2.0 X448 +
+  the security intuition VORLATH's combiner reuses (one-leg-break robustness via a PRF-modeled
+  combiner). VORLATH generalises it to an algorithm-agile suite (adds the CNSA-2.0 X448 +
   ML-KEM-1024 tier).
 - **TLS 1.3 hybrid key exchange** (`draft-ietf-tls-hybrid-design`, e.g. `X25519MLKEM768`) — the
   interoperable transport a production deployment should use; `SECURITY.md` points there
@@ -63,7 +63,7 @@ To match what a serious 2026 diligence desk now expects of any security-critical
 
 ## 5. Honest boundaries
 
-This note positions POLARIS Shield against the standards; it does **not** claim adoption,
+This note positions VORLATH Shield against the standards; it does **not** claim adoption,
 conformance, certification, or endorsement by any standards body. The references above are to
 public, in-progress drafts and published U.S. government guidance; treat them as the map of
 where the design sits, not as a badge it has earned.

@@ -1,4 +1,4 @@
-# POLARIS Shield — formal verification
+# VORLATH Shield — formal verification
 
 Machine-checked **symbolic** security proofs of the Shield's authenticated hybrid handshake,
 under an active **Dolev-Yao** attacker — the exact adversary `THREAT_MODEL.md` names. Every

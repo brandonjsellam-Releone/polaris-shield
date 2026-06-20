@@ -1,10 +1,10 @@
-# POLARIS Shield v2 — post-quantum hybrid security (reference)
+# VORLATH Shield v2 — post-quantum hybrid security (reference)
 
-[![CI](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/shield-ci.yml/badge.svg)](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/shield-ci.yml)
-[![formal verification](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/formal.yml/badge.svg)](https://github.com/brandonjsellam-Releone/polaris-shield/actions/workflows/formal.yml)
+[![CI](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/shield-ci.yml/badge.svg)](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/shield-ci.yml)
+[![formal verification](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/formal.yml/badge.svg)](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/formal.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-The **POLARIS Shield** is the real, runnable form of the BOREALIS / POLARIS **L9 layer**
+The **VORLATH Shield** is the real, runnable form of the VALYON / VORLATH **L9 layer**
 (a "post-quantum root of trust" in the **cryptographic** sense — the foundational software PQC
 layer; **not** a hardware root of trust, and providing no TPM / secure-element / measured-boot
 anchor). It is an **algorithm-agile** hybrid (classical +
@@ -12,8 +12,8 @@ post-quantum) cryptosystem on the finalized NIST standards, with a self-describi
 downgrade-resistant wire format — so data captured today cannot be opened by a future
 cryptographically-relevant quantum computer ("harvest-now, decrypt-later").
 
-> **Separate project note.** POLARIS Shield is a component of the (speculative) BOREALIS /
-> POLARIS concept. It is **not** affiliated with, and does not modify, the separate TRELYAN
+> **Separate project note.** VORLATH Shield is a component of the (speculative) VALYON /
+> VORLATH concept. It is **not** affiliated with, and does not modify, the separate TRELYAN
 > project. Any resemblance in subject matter (post-quantum cryptography) is coincidental to
 > both working in the same standards space.
 
@@ -44,7 +44,7 @@ lineages already establish). Hybrid `0x02` stays the default; `0x03` is opt-in.
 - **Downgrade resistance**: `suite_id`/`flags` bound in both AAD and KDF transcript.
 - **Key management**: self-describing keys, 256-bit SHAKE-256 key-ids, scrypt(2¹⁷) at-rest wrap.
 - **Streaming AEAD** (`seal_stream`/`open_stream`, CLI `--stream`): chunked large-file encryption whose per-chunk nonce binds a counter and a final-flag, so truncation, reorder, and dropped chunks are all detected — not just bit-flips.
-- **High-assurance diversified signatures** (opt-in, `polaris_shield.highassurance`): adds **SLH-DSA** (FIPS 205, stateless hash-based) alongside the lattice ML-DSA. In `dual_sign`/`dual_verify` mode a forgery requires breaking **both** a lattice and a hash-based scheme — for long-lived roots (evidence, firmware). Large (~29 KB) signatures, deliberately slow signing; not the default.
+- **High-assurance diversified signatures** (opt-in, `vorlath_shield.highassurance`): adds **SLH-DSA** (FIPS 205, stateless hash-based) alongside the lattice ML-DSA. In `dual_sign`/`dual_verify` mode a forgery requires breaking **both** a lattice and a hash-based scheme — for long-lived roots (evidence, firmware). Large (~29 KB) signatures, deliberately slow signing; not the default.
 - **Deterministic KAT/conformance harness** (`test_kats.py` + `kat_vectors.json`).
 - **Cross-implementation interoperability corpus** (`interop/`): a frozen set of portable golden vectors (`pstv_vectors.json`, both suites, anonymous/authenticated/streaming + 46 typed-error tamper negatives) plus a **separately-coded decoder** (`altcodec.py`) written only from [FORMAT.md](FORMAT.md) — sharing the primitive libraries but re-implementing the parse/combiner/KDF-transcript/AEAD logic independently. Every positive is reproduced byte-for-byte by **both** implementations; every negative is rejected at its **expected layer** (AEAD / signature / structural) by both. Proves the wire format is complete and unambiguous enough for a second implementation to interoperate. See [interop/INTEROP.md](interop/INTEROP.md).
 - **Cross-implementation primitive differential** (`interop/cross_impl.py`): closes the one gap the interop corpus cannot (it shares the primitive libs) by cross-validating ML-KEM / ML-DSA against an **independent PQClean/C implementation** (`pqcrypto`) on **random** inputs — ML-KEM both-directions shared-secret equality and ML-DSA mutual accept/tamper-reject, all four parameter sets (verified live, 500/500). `make interop-diff` (the Docker build *is* the gate). See [interop/CROSS_IMPL.md](interop/CROSS_IMPL.md).
@@ -52,27 +52,26 @@ lineages already establish). Hybrid `0x02` stays the default; `0x03` is opt-in.
 ## Install
 
 ```bash
-pip install -e tech/.[dev]      # or: pip install -r tech/requirements.txt
+pip install -e .[dev]      # or: pip install -r tech/requirements.txt
 ```
 
 ## Use
 
 ```bash
-cd tech
-python -m polaris_shield demo                                     # live walkthrough (apex suite)
-python -m polaris_shield keygen  --prefix alice [--suite 2] [--passphrase pw]
-python -m polaris_shield encrypt --to alice.kem.pub --in secret.txt --out secret.trsh \
+python -m vorlath_shield demo                                     # live walkthrough (apex suite)
+python -m vorlath_shield keygen  --prefix alice [--suite 2] [--passphrase pw]
+python -m vorlath_shield encrypt --to alice.kem.pub --in secret.txt --out secret.trsh \
                                  [--sign-key bob.sig.key --sign-pub bob.sig.pub]   # authenticated
-python -m polaris_shield decrypt --key alice.kem.key --in secret.trsh --out out.txt \
+python -m vorlath_shield decrypt --key alice.kem.key --in secret.trsh --out out.txt \
                                  [--expect-sender bob.sig.pub] [--passphrase pw]
-python -m polaris_shield sign    --key alice.sig.key --in doc.pdf --out doc.sig
-python -m polaris_shield verify  --pub alice.sig.pub --in doc.pdf --sig doc.sig
-python -m polaris_shield info    --in secret.trsh                 # inspect suite / auth / size
+python -m vorlath_shield sign    --key alice.sig.key --in doc.pdf --out doc.sig
+python -m vorlath_shield verify  --pub alice.sig.pub --in doc.pdf --sig doc.sig
+python -m vorlath_shield info    --in secret.trsh                 # inspect suite / auth / size
 python -m pytest -q                                              # 497 tests (functional + KAT + ACVP + property/fuzz + high-assurance + cross-impl interop)
 ```
 
 ```python
-from polaris_shield import shield
+from vorlath_shield import shield
 pub, priv = shield.generate_recipient_keys()                      # default = CNSA-2.0 apex suite
 env = shield.encrypt(b"classified", pub)
 assert shield.decrypt(env, priv) == b"classified"

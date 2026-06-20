@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Generate a CycloneDX 1.6 CBOM (Cryptographic Bill of Materials) for POLARIS Shield.
+"""Generate a CycloneDX 1.6 CBOM (Cryptographic Bill of Materials) for VORLATH Shield.
 
 A CBOM is the machine-readable cryptographic inventory that the US-federal PQC migration
 mandates call for (NSM-10; OMB M-23-02; NIST NCCoE SP 1800-38 "Migration to PQC" discovery /
@@ -77,9 +77,9 @@ def component(a):
         "name": name,
         "cryptoProperties": cp,
         "properties": [
-            {"name": "polaris:standard", "value": std},
-            {"name": "polaris:quantum-resistant", "value": "true" if qr else "false"},
-            {"name": "polaris:used-in-suite", "value": ", ".join(suites)},
+            {"name": "vorlath:standard", "value": std},
+            {"name": "vorlath:quantum-resistant", "value": "true" if qr else "false"},
+            {"name": "vorlath:used-in-suite", "value": ", ".join(suites)},
         ],
     }
     return comp
@@ -93,10 +93,10 @@ def main():
         "version": 1,
         "metadata": {
             "component": {
-                "type": "application", "name": "polaris-shield", "version": "2.0.0",
-                "description": "POLARIS Shield cryptographic inventory (CBOM) - algorithm-agile hybrid PQC.",
+                "type": "application", "name": "vorlath-shield", "version": "2.0.0",
+                "description": "VORLATH Shield cryptographic inventory (CBOM) - algorithm-agile hybrid PQC.",
             },
-            "tools": [{"vendor": "POLARIS", "name": "make_cbom.py", "version": "1.0"}],
+            "tools": [{"vendor": "VORLATH", "name": "make_cbom.py", "version": "1.0"}],
             "properties": [
                 {"name": "cbom:scope", "value": "design-derived cryptographic asset inventory (FORMAT.md suite table)"},
                 {"name": "cbom:note",

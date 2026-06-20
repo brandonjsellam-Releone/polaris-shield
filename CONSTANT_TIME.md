@@ -1,6 +1,6 @@
-# Constant-time / side-channel measurement — POLARIS Shield
+# Constant-time / side-channel measurement — VORLATH Shield
 
-This document **measures** the timing side-channel behaviour of the POLARIS Shield's
+This document **measures** the timing side-channel behaviour of the VORLATH Shield's
 cryptographic operations. It does **not** make the Shield constant-time, and it makes
 **no** claim that it is. `SECURITY.md` already states that the pure-Python PQ legs are
 "not side-channel / constant-time hardened"; this turns that qualitative disclaimer into

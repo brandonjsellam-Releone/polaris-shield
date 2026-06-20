@@ -6,8 +6,8 @@
       "z": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
       "m": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
       "zeta": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-      "msg": "POLARIS KAT vector",
-      "ctx": "POLARIS-Shield/sig/v1"
+      "msg": "VORLATH KAT vector",
+      "ctx": "VORLATH-Shield/sig/v1"
     },
     "note": "NOT official NIST ACVP vectors; cross-validate against ACVP for FIPS conformance."
   },
@@ -44,19 +44,19 @@
     "ML-DSA-44": {
       "pk_sha256": "9f107644c1084526af3bc8098680b05499a2325a644e388fb4f970e058d19d46",
       "sk_sha256": "04bf6b9f579166a627961dfc5c3bf9717df868db88863856356c4668c8b56b0b",
-      "sig_sha256": "0c4e9eb6268fc0c0357b2734f731c48fb4e4d4897d6c6f40cf77b6b763ad0927",
+      "sig_sha256": "ce45a46ee39a31fe25ecf37c5d9d5d7bfef4b0d06c366710f62a382ddd07965b",
       "sig_len": 2420
     },
     "ML-DSA-65": {
       "pk_sha256": "d666806e11cee19a7c989f7445f90dd419cf4d2d51db8c0fdb4c0f0a542238c9",
       "sk_sha256": "9f1e24f47795fe50040384e3d6183988047170fa2d866406b70fe0a3f8216063",
-      "sig_sha256": "80ff444bc103cfebe1f98c0f129726b3a24766f1df81b649e7291287f8a68dfc",
+      "sig_sha256": "a425c333bff3f67bd7381f67e81bed2fba1d96fe78428dc4ad2df0f3239d5028",
       "sig_len": 3309
     },
     "ML-DSA-87": {
       "pk_sha256": "91dc389cfaa01470b7f66eee45a4ae9026d154817c754dfe22298b3fa241ffcd",
       "sk_sha256": "764d3e223ed90c07bc91a0ab6ecd170e5c66ffe39f7039298596039a36005435",
-      "sig_sha256": "262c647bc087b6523ac4bef500d3eb4f1139c387ff0b7e0c4b86f61984d5fab0",
+      "sig_sha256": "b1992044bd556e2402e341a30bc1e1c3623d06da10c6a42d3d0b4cb6282e7246",
       "sig_len": 4627
     }
   }

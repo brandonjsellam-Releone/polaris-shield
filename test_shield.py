@@ -1,4 +1,4 @@
-"""Functional + negative tests for the POLARIS Shield v2 core.
+"""Functional + negative tests for the VORLATH Shield v2 core.
 Run: cd tech && python -m pytest -q   (KAT conformance lives in tests/test_kats.py)
 """
 import os
@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pytest
 
-from polaris_shield import shield
+from vorlath_shield import shield
 
 SUITES = [0x01, 0x02, 0x03]   # 0x03 = CNSA-2.0 pure-PQC (no classical leg)
 
@@ -18,7 +18,7 @@ def test_hybrid_roundtrip(suite):
     pub, priv = shield.generate_recipient_keys(suite)
     msg = os.urandom(4096)
     env = shield.encrypt(msg, pub)
-    assert env[:4] == b"PLSH"
+    assert env[:4] == b"VRSH"
     assert env[5] == suite
     assert shield.decrypt(env, priv) == msg
 
@@ -103,7 +103,7 @@ def test_expected_sender_but_anonymous_is_rejected(suite):
 @pytest.mark.parametrize("suite", SUITES)
 def test_signatures_with_context(suite):
     pk, sk = shield.generate_signing_keys(suite)
-    m = b"BOREALIS / POLARIS evidence record"
+    m = b"VALYON / VORLATH evidence record"
     sig = shield.sign(sk, m)
     assert shield.verify(pk, m, sig)
     assert not shield.verify(pk, b"forged record", sig)
@@ -122,7 +122,7 @@ def test_classical_only_is_distinct_and_smaller(suite):
         return
     classical = shield.encrypt_classical_only(b"x", pub)
     hybrid = shield.encrypt(b"x", pub)
-    assert classical[:4] == b"X25O" and hybrid[:4] == b"PLSH"
+    assert classical[:4] == b"X25O" and hybrid[:4] == b"VRSH"
     assert len(hybrid) - len(classical) > 1000  # the ML-KEM ciphertext (1088/1568 B)
 
 
@@ -162,7 +162,7 @@ def test_pure_pqc_suite_0x03_roundtrip_and_no_classical():
     # materially smaller than the hybrid 0x02 bundle (it carries no classical public key).
     pub, priv = shield.generate_recipient_keys(0x03)
     env = shield.encrypt(b"pure-pqc secret", pub)
-    assert env[:4] == b"PLSH" and env[5] == 0x03
+    assert env[:4] == b"VRSH" and env[5] == 0x03
     assert shield.decrypt(env, priv) == b"pure-pqc secret"
     spk, ssk = shield.generate_signing_keys(0x03)
     aenv = shield.encrypt_authenticated(b"signed", pub, ssk, spk)
@@ -183,7 +183,7 @@ def test_key_id_is_stable_and_bound():
 
 def test_malformed_envelopes_raise_valueerror():
     pub, priv = shield.generate_recipient_keys()
-    for bad in [b"", b"PLSH", b"XXXX" + b"\x02" * 40,
+    for bad in [b"", b"VRSH", b"XXXX" + b"\x02" * 40,
                 shield.encrypt(b"x", pub)[:20],  # truncated mid-header
                 12345, None]:                    # non-bytes: documented ValueError, not TypeError
         with pytest.raises(ValueError):
@@ -193,7 +193,7 @@ def test_malformed_envelopes_raise_valueerror():
 def test_malformed_streams_raise_valueerror():
     pub, priv = shield.generate_recipient_keys()
     good = shield.seal_stream(b"x", pub)
-    for bad in [b"", b"PLST", b"XXXX" + b"\x02" * 40,
+    for bad in [b"", b"VRST", b"XXXX" + b"\x02" * 40,
                 good[:20], good[:-1],   # truncated header / dropped trailing byte
                 12345, None]:           # non-bytes: documented ValueError, not TypeError
         with pytest.raises(ValueError):
@@ -212,7 +212,7 @@ def test_stream_roundtrip_multichunk(suite):
     pub, priv = shield.generate_recipient_keys(suite)
     msg = os.urandom(64 * 1024 * 3 + 1234)   # several chunks + a partial
     env = shield.seal_stream(msg, pub, chunk_size=64 * 1024)
-    assert env[:4] == b"PLST"
+    assert env[:4] == b"VRST"
     assert shield.open_stream(env, priv) == msg
 
 
@@ -265,7 +265,7 @@ def test_stream_wrong_recipient_is_rejected():
 
 # ----------------------------------------------------------------- positional / reorder binding
 def _stream_parts(env):
-    """Split a PLST envelope into (header, [chunk_blobs])."""
+    """Split a VRST envelope into (header, [chunk_blobs])."""
     off = 7
     for _ in range(4):  # key_id, eph_pub, kem_ct, base_nonce
         (n,) = _struct.unpack_from(">H", env, off); off += 2 + n
@@ -353,7 +353,7 @@ def test_cross_suite_envelope_is_rejected():
 
 
 def test_cross_construction_is_rejected():
-    # A single-shot (PLSH) envelope must not open as a stream (PLST), and vice versa.
+    # A single-shot (VRSH) envelope must not open as a stream (VRST), and vice versa.
     pub, priv = shield.generate_recipient_keys()
     env = shield.encrypt(b"x", pub)
     st = shield.seal_stream(b"x", pub)

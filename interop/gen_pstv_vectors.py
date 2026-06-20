@@ -2,7 +2,7 @@
 
 This generator produces a self-contained golden-vector file,
 ``interop/pstv_vectors.json``, that an INDEPENDENT implementer can consume to
-prove byte-level interoperability with the POLARIS Shield ``PLSH`` wire format
+prove byte-level interoperability with the VORLATH Shield ``VRSH`` wire format
 (``tech/FORMAT.md``). It covers BOTH suites (0x01 FIPS-standard, 0x02 CNSA-2.0
 default) and these cases:
 
@@ -32,7 +32,7 @@ Negatives also carry ``open_as`` so the test knows which decode path to drive:
 ``"stream"`` (shield.open_stream / altcodec.open_stream). Authenticated-pin
 negatives additionally carry ``expected_sender_public``.
 
-DETERMINISM RULE (important): POLARIS Shield encryption uses fresh randomness
+DETERMINISM RULE (important): VORLATH Shield encryption uses fresh randomness
 (``os.urandom``), so re-running this generator MINTS A DIFFERENT corpus every
 time. The COMMITTED ``pstv_vectors.json`` is therefore the single authority: run
 this ONCE, commit the JSON, and let the tests read the committed file. The tests
@@ -54,7 +54,7 @@ _TECH = os.path.dirname(_HERE)
 if _TECH not in sys.path:
     sys.path.insert(0, _TECH)
 
-from polaris_shield import shield  # noqa: E402  (after sys.path shim)
+from vorlath_shield import shield  # noqa: E402  (after sys.path shim)
 
 OUT_PATH = os.path.join(_HERE, "pstv_vectors.json")
 
@@ -64,12 +64,12 @@ SUITE_LABEL = {
     0x02: "CNSA-2.0 (default): X448 + ML-KEM-1024 + ML-DSA-87 + HKDF-SHA384 + AES-256-GCM",
 }
 
-ANON_PLAINTEXT = b"POLARIS Shield PSTV: anonymous single-shot known-answer vector."
-AUTH_PLAINTEXT = b"POLARIS Shield PSTV: authenticated (ML-DSA) single-shot vector."
+ANON_PLAINTEXT = b"VORLATH Shield PSTV: anonymous single-shot known-answer vector."
+AUTH_PLAINTEXT = b"VORLATH Shield PSTV: authenticated (ML-DSA) single-shot vector."
 # A DIFFERENT authenticated plaintext: a second genuine envelope from the same signer
 # whose signature (over a different pre_auth) is grafted onto envelope #1 to build the
 # sig_misbinding (transcript-reuse) negative — see _negatives().
-AUTH_MISBIND_PLAINTEXT = b"POLARIS Shield PSTV: second authenticated vector for sig misbinding."
+AUTH_MISBIND_PLAINTEXT = b"VORLATH Shield PSTV: second authenticated vector for sig misbinding."
 STREAM_PLAINTEXT = os.urandom(64 * 1024 * 2 + 777)  # > 1 chunk at the default 64 KiB
 
 # Small chunk + multi-chunk plaintext for the streaming NEGATIVES: a >= 3-chunk
@@ -164,7 +164,7 @@ def _positive_stream(suite_id: int) -> dict:
 def _walk_header_tlvs(env: bytes, count: int) -> tuple[list[tuple[int, int, int]], int]:
     """Return [(len_pos, val_pos, n), ...] for the first ``count`` header TLVs.
 
-    Header TLVs begin at offset 7 (FORMAT.md §2.3 for PLSH, §4.2 for PLST).
+    Header TLVs begin at offset 7 (FORMAT.md §2.3 for VRSH, §4.2 for VRST).
     The returned final offset points just past the last walked TLV.
     """
     off = 7
@@ -211,7 +211,7 @@ def _stream_header_end(env: bytes) -> int:
 
 
 def _stream_chunks(env: bytes) -> list[tuple[int, int, int]]:
-    """Return [(len_pos, blob_pos, blob_len), ...] for every PLST chunk.
+    """Return [(len_pos, blob_pos, blob_len), ...] for every VRST chunk.
     FORMAT.md §4.3."""
     off = _stream_header_end(env)
     spans: list[tuple[int, int, int]] = []
@@ -490,7 +490,7 @@ def _negatives(suite_id: int) -> list[dict]:
         open_as="authenticated", expected_sender_public=spk2))
 
     # ----------------------------------------------------------------- #
-    # Streaming (PLST) negatives — exercise counter+final anti-tamper logic.
+    # Streaming (VRST) negatives — exercise counter+final anti-tamper logic.
     # ----------------------------------------------------------------- #
     chunks = _stream_chunks(stream)
     assert len(chunks) >= 3, f"need >=3 chunks, got {len(chunks)}"
@@ -553,7 +553,7 @@ def _negatives(suite_id: int) -> list[dict]:
         e, expected_error="aead", expected_layer="crypto", open_as="stream"))
 
     # ----------------------------------------------------------------- #
-    # Streaming (PLST) STRUCTURAL negatives — exercise open_stream's CHEAP
+    # Streaming (VRST) STRUCTURAL negatives — exercise open_stream's CHEAP
     # cross-checks (suite / recipient / header framing), which no crypto-layer
     # stream negative reaches. These are caught BEFORE any decapsulation.
     # ----------------------------------------------------------------- #
@@ -624,7 +624,7 @@ def build_corpus() -> dict:
     return {
         "meta": {
             "name": "Portable Shield Test Vectors (PSTV)",
-            "format": "POLARIS Shield v2 PLSH single-shot + PLST stream envelopes",
+            "format": "VORLATH Shield v2 VRSH single-shot + VRST stream envelopes",
             "spec": "tech/FORMAT.md",
             "frozen": True,
             "authority": (
@@ -642,14 +642,14 @@ def build_corpus() -> dict:
                 "Hex comparison is case-insensitive."
             ),
             "fields": {
-                "recipient_public": "PLSK role-1 (KEM public) bundle",
-                "recipient_private": "PLSK role-2 (KEM private) bundle",
-                "sender_public": "PLSK role-3 (ML-DSA signing public) bundle (authenticated positives)",
+                "recipient_public": "VRSK role-1 (KEM public) bundle",
+                "recipient_private": "VRSK role-2 (KEM private) bundle",
+                "sender_public": "VRSK role-3 (ML-DSA signing public) bundle (authenticated positives)",
                 "expected_sender_public": (
-                    "PLSK role-3 signing public bundle to PIN on open (authenticated negatives "
+                    "VRSK role-3 signing public bundle to PIN on open (authenticated negatives "
                     "driven through the pinned path)"
                 ),
-                "envelope": "full PLSH/PLST envelope bytes",
+                "envelope": "full VRSH/VRST envelope bytes",
                 "expected_plaintext": "decrypted plaintext (positives only)",
                 "tamper": "negative-vector mutation tag (negatives only)",
                 "reason": "why the negative vector must be rejected",

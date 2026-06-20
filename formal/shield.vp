@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// POLARIS Shield v2 — authenticated HYBRID handshake, symbolic (Dolev-Yao) model.
+// VORLATH Shield v2 — authenticated HYBRID handshake, symbolic (Dolev-Yao) model.
 //
-// Mirrors tech/polaris_shield/shield.py: a recipient with a STATIC hybrid identity
+// Mirrors tech/vorlath_shield/shield.py: a recipient with a STATIC hybrid identity
 // (classical X-DH + ML-KEM), a sender that contributes an ephemeral X-DH leg and an
 // ML-KEM encapsulation, an SP 800-56C-shaped combiner (HKDF over length-framed
 // ss_classical || ss_pq, with the suite_id + full transcript in info), a SIGMA-style

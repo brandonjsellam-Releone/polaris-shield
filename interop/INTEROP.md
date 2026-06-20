@@ -1,6 +1,6 @@
-# POLARIS Shield — interoperability corpus (PSTV) and standards-alignment map
+# VORLATH Shield — interoperability corpus (PSTV) and standards-alignment map
 
-This directory is the **cross-implementation interoperability** component for the POLARIS
+This directory is the **cross-implementation interoperability** component for the VORLATH
 Shield reference cryptosystem. It exists to answer one question with running code:
 
 > Is the wire-format specification in [`../FORMAT.md`](../FORMAT.md) complete and unambiguous
@@ -11,15 +11,15 @@ Shield reference cryptosystem. It exists to answer one question with running cod
 It answers "yes" via two artifacts plus a test:
 
 1. **`pstv_vectors.json`** — a frozen "Portable Shield Test Vectors" (PSTV) corpus.
-2. **`altcodec.py`** — a *separately-coded* `PLSH`/`PLST` decoder built only from `FORMAT.md`,
-   which does **not** import `polaris_shield`'s envelope/combiner/KDF/key-bundle code (it does,
+2. **`altcodec.py`** — a *separately-coded* `VRSH`/`VRST` decoder built only from `FORMAT.md`,
+   which does **not** import `vorlath_shield`'s envelope/combiner/KDF/key-bundle code (it does,
    by design, share the same primitive libraries — see the scope note below).
 3. **`test_pstv.py`** — for every positive vector, both the reference **and** `altcodec`
    reproduce the committed plaintext; for every negative vector, **both** reject.
 
 ## Honest framing (mandatory)
 
-- The POLARIS Shield envelope is a **project convention**, **not** a standardized, registered,
+- The VORLATH Shield envelope is a **project convention**, **not** a standardized, registered,
   or IANA/IETF-assigned protocol. There is no interoperability claim with any third party.
 - **"CNSA 2.0"** here denotes the **algorithm set** (ML-KEM-1024 + ML-DSA-87 + AES-256 +
   SHA-384), **never** a validated module or a certification. For interoperable production
@@ -41,9 +41,9 @@ It answers "yes" via two artifacts plus a test:
 
 ## Wire-field → spec section → standard basis / modeled on
 
-Each `PLSH` envelope field, mapped to its `FORMAT.md` section and the standard the value or the
-operation that consumes it is **based on or modeled on**. (`PLSH` = single-shot envelope;
-`PLSK` = key bundle.) Where a row names a NIST publication, read it as *the standard this construction
+Each `VRSH` envelope field, mapped to its `FORMAT.md` section and the standard the value or the
+operation that consumes it is **based on or modeled on**. (`VRSH` = single-shot envelope;
+`VRSK` = key bundle.) Where a row names a NIST publication, read it as *the standard this construction
 is built from or shaped after* — not a claim of validated/conformant instantiation of that standard.
 In particular, the hybrid combiner is **modeled on** SP 800-56C (its two-step extract-then-expand KDF
 with length-framing and a FixedInfo transcript), but it is a **project construction**, not a validated
@@ -51,7 +51,7 @@ or conformant SP 800-56C instantiation; see the note below the table.
 
 | Wire field | `FORMAT.md` § | Standard basis / modeled on |
 |---|---|---|
-| `MAGIC` (`PLSH`), `VERSION` (`0x02`) | §2.2 | project convention (framing) |
+| `MAGIC` (`VRSH`), `VERSION` (`0x02`) | §2.2 | project convention (framing) |
 | `suite_id` (`0x01` / `0x02`) | §2.2, §6, §2.7 | selects the FIPS 203/204 + RFC 7748 parameter set |
 | `flags` (`FLAG_AUTHENTICATED`) | §2.2, §2.7 | project convention; bound into AAD + KDF |
 | `recipient_key_id` (32 B SHAKE-256) | §2.3, §5.2 | FIPS 202 (SHAKE-256) |
@@ -63,8 +63,8 @@ or conformant SP 800-56C instantiation; see the note below the table.
 | HKDF over length-framed `ss_classical‖ss_pq` | §2.6(b), §8.1 | RFC 5869 (HKDF); combiner shape modeled on SP 800-56C |
 | AEAD seal/open with `header` as AAD | §2.4, §2.6(a) | NIST SP 800-38D (AES-256-GCM) |
 | exact-length framing (`sealed_len` u32) | §2.4, §8.5 | project convention (anti-truncation) |
-| `PLST` per-chunk counter+final nonce/AAD | §4.3, §4.4, §8.4 | SP 800-38D + project counter construction |
-| `PLSK` key-bundle TLVs (roles 1–4) | §5, §5.1 | FIPS 203/204 key material, SHAKE-256 key-id |
+| `VRST` per-chunk counter+final nonce/AAD | §4.3, §4.4, §8.4 | SP 800-38D + project counter construction |
+| `VRSK` key-bundle TLVs (roles 1–4) | §5, §5.1 | FIPS 203/204 key material, SHAKE-256 key-id |
 
 The TLV primitive itself (2-byte big-endian length + value, bounds-checked) is `FORMAT.md` §1.
 
@@ -93,9 +93,9 @@ Structure:
 - **Positive vectors** (`kind` = `single_shot_anonymous` | `single_shot_authenticated` | `stream`)
   carry `recipient_public`, `recipient_private`, the full `envelope`, and `expected_plaintext`
   (authenticated vectors also carry `sender_public`). To validate your implementation: parse
-  `recipient_private` as a `PLSK` role-2 bundle, decode `envelope`, and assert your plaintext
+  `recipient_private` as a `VRSK` role-2 bundle, decode `envelope`, and assert your plaintext
   equals `expected_plaintext`. For authenticated vectors, verify the embedded ML-DSA signature
-  over `pre_auth ‖ sender_kid` (context `POLARIS-Shield/auth/v2`) **before** decapsulation.
+  over `pre_auth ‖ sender_kid` (context `VORLATH-Shield/auth/v2`) **before** decapsulation.
 - **Negative vectors** (`kind` = `negative`) carry a mutated `envelope`, the `recipient_private`
   needed to attempt decode, a `tamper`/`reason` describing the mutation, and three fields that make
   the rejection *evidentiary* rather than "rejected somehow":
@@ -125,10 +125,10 @@ Structure:
     property), `sender_kid_mismatch` and `sender_pub_swapped` (`sender_kid`, structural — caught at
     the pre-signature key-id cross-check, **before** `verify()`), `wrong_sender_pin` (`sender_pin`,
     structural);
-  - *streaming (PLST), crypto* — `stream_chunk_bitflip`, `stream_final_dropped` (anti-truncation),
+  - *streaming (VRST), crypto* — `stream_chunk_bitflip`, `stream_final_dropped` (anti-truncation),
     `stream_chunk_reordered` (anti-reorder), `stream_middle_dropped` (anti-drop),
     `stream_chunk_duplicated` (anti-duplication), all `aead`;
-  - *streaming (PLST), structural* — `stream_suite_mutated` (`suite_mismatch`),
+  - *streaming (VRST), structural* — `stream_suite_mutated` (`suite_mismatch`),
     `stream_wrong_recipient` (`wrong_recipient`), `stream_header_truncated` (`truncation`) — the
     cheap `open_stream` cross-checks, caught before any decapsulation;
   - *downgrade-bit, crypto* — `flags_downgrade_crypto_binding`: an unused `flags` bit set on an
@@ -186,7 +186,7 @@ cross-check** (`sender_kid == claimed_kid`), and never reach `verify()`.
 ## What this corpus does and does **not** prove
 
 **Proves:** that `FORMAT.md` is precise enough for a **second, separately-coded** implementation
-(which shares the same primitive libraries) to (a) parse the `PLSH`/`PLST`
+(which shares the same primitive libraries) to (a) parse the `VRSH`/`VRST`
 byte layout with correct bounds checks, (b) recompute the length-framed combiner (modeled on
 SP 800-56C) and the HKDF transcript identically, (c) verify the ML-DSA sender signature with the right context and
 identity binding (including the SIGMA / transcript-binding property, exercised by `sig_misbinding`
@@ -200,7 +200,7 @@ cross-validation and cannot catch a spec misreading shared by both implementatio
 separate effort — see `test_acvp.py`), constant-time / side-channel resistance, or replay/freshness
 (authenticated mode proves sender identity + integrity, not freshness; see `FORMAT.md` §8.6).
 
-**Out of scope for this PLSH/PLST corpus (tested elsewhere):**
+**Out of scope for this VRSH/VRST corpus (tested elsewhere):**
 - **PLHA / PLDU high-assurance** — the SLH-DSA (FIPS 205) high-assurance key bundle and the
   ML-DSA + SLH-DSA **dual signature** (`FORMAT.md` §6) are **not** exercised here; they are covered
   by `test_highassurance.py`. Likewise full **cross-suite key-confusion** (e.g. presenting a suite

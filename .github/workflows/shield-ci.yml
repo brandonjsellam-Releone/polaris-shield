@@ -1,4 +1,4 @@
-name: POLARIS Shield CI
+name: VORLATH Shield CI
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       - name: Lint (ruff)
         run: ruff check .
       - name: Types (mypy)
-        run: mypy polaris_shield
+        run: mypy vorlath_shield
       - name: Tests + KAT conformance (pytest)
         run: pytest -q
       - name: KAT vectors are reproducible
@@ -34,7 +34,7 @@ jobs:
           python gen_kat_vectors.py
           git diff --exit-code kat_vectors.json
       - name: Live demo (smoke)
-        run: python -m polaris_shield demo
+        run: python -m vorlath_shield demo
 
   audit:
     name: dependency audit

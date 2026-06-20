@@ -1,17 +1,17 @@
 (* ==========================================================================
-   POLARIS Shield hybrid handshake - ProVerif symbolic model (UNBOUNDED sessions).
+   VORLATH Shield hybrid handshake - ProVerif symbolic model (UNBOUNDED sessions).
 
    STATUS (VERIFIED - ProVerif 2.05, 2026-06-20): ALL queries give their expected results. The
    four security properties prove TRUE - hybrid secrecy (both legs needed = harvest-now-decrypt-
    later defeated), secrecy under a classical-leg break, secrecy under a pq-leg break, and
    downgrade resistance - AND both sender-authentication correspondences prove TRUE
    (sender_authentication, KCI; scoped to honest senders via the SetupS witness, the analog of
-   Tamarin's !Pk_S). The executable/non-vacuity query confirms an honest run is reachable. POLARIS
+   Tamarin's !Pk_S). The executable/non-vacuity query confirms an honest run is reachable. VORLATH
    Shield therefore has a FOURTH independent machine-checked lineage - ProVerif (Horn-clause
    resolution) agreeing with Tamarin (constraint solving) and Verifpal (bounded), over UNBOUNDED
    sessions. Re-run (CI-gated in .github/workflows/formal.yml):
-       docker build -t polaris-proverif -f tech/formal/proverif.Dockerfile .
-       docker run --rm -v "$PWD/tech/formal:/work" polaris-proverif shield.pv
+       docker build -t vorlath-proverif -f tech/formal/proverif.Dockerfile .
+       docker run --rm -v "$PWD/tech/formal:/work" vorlath-proverif shield.pv
    Per-query expected results are in the comments by each query below.
 
    THIRD independent symbolic lineage, beside the Verifpal models

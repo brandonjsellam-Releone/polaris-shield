@@ -1,6 +1,6 @@
 # tech/release/lms.Dockerfile
 # -----------------------------------------------------------------------------
-# POLARIS Shield -- SP 800-208 LMS release-signing self-test container.
+# VORLATH Shield -- SP 800-208 LMS release-signing self-test container.
 #
 # Builds a minimal pure-Python image, installs the real pip-installable lib
 # (pyhsslms by Russ Housley: RFC 8554 + the SP 800-208 parameter additions,
@@ -15,7 +15,7 @@
 # workflow, NOT an 800-208-compliant signing service.
 #
 # Build (from tech/release/):
-#   docker build -f lms.Dockerfile -t polaris-lms-signing .
+#   docker build -f lms.Dockerfile -t vorlath-lms-signing .
 # A successful build == the sign+verify round trip passed.
 # -----------------------------------------------------------------------------
 FROM python:3.12-slim

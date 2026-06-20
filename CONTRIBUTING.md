@@ -1,6 +1,6 @@
-# Contributing to POLARIS Shield
+# Contributing to VORLATH Shield
 
-Thanks for your interest. POLARIS Shield is an open-source, algorithm-agile **hybrid** post-quantum
+Thanks for your interest. VORLATH Shield is an open-source, algorithm-agile **hybrid** post-quantum
 cryptography reference implementation on the finalized NIST standards (ML-KEM / ML-DSA). It is held to
 an unusual bar: **every security-relevant claim must be backed by an artifact a reviewer can reproduce**
 — a machine-checked proof, a passing test, or a signed reproducible build. Please keep contributions to
@@ -22,15 +22,15 @@ pip install -e ".[dev]"
 
 ```bash
 pytest -q                          # the full test suite (functional + NIST ACVP conformance + KAT + property/fuzz + interop)
-ruff check . && mypy polaris_shield # lint + types
-python -m polaris_shield demo      # live walkthrough
+ruff check . && mypy vorlath_shield # lint + types
+python -m vorlath_shield demo      # live walkthrough
 
 # The four formal-proof lineages (CI runs these on every relevant change):
 #   Verifpal (bounded), Tamarin + ProVerif (unbounded), CryptoVerif (computational + the IND-CCA composition).
 # See formal/README.md; the proverif/cryptoverif/cross-impl Docker images reproduce them hermetically.
 
 # Independent second-implementation primitive cross-check, and the reproducibility bundle:
-docker build -f interop/diff.Dockerfile -t polaris-shield-diff interop   # ML-KEM/ML-DSA vs PQClean/C
+docker build -f interop/diff.Dockerfile -t vorlath-shield-diff interop   # ML-KEM/ML-DSA vs PQClean/C
 python release/make_bundle.py                                            # content-addressed signed bundle
 ```
 
@@ -40,7 +40,7 @@ clean checkout.
 ## Standards for a change
 
 - **No overclaiming.** If you add a claim, add the artifact that proves it (a test, a proof query, a
-  vector). If a change touches the handshake model or `polaris_shield/shield.py`, the formal CI
+  vector). If a change touches the handshake model or `vorlath_shield/shield.py`, the formal CI
   (`formal.yml`) must stay green; if it changes the wire format, update `FORMAT.md` and the interop
   vectors. Frozen KAT/interop vectors must keep verifying (run `pytest`).
 - **Honesty about scope.** This is a reference implementation, **not** FIPS 140-3 validated and not

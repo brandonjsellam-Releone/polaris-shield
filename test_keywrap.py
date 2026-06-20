@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pytest
 
-from polaris_shield import __main__ as cli
+from vorlath_shield import __main__ as cli
 
 
 def test_keywrap_roundtrip():

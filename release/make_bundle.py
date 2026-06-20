@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Build the POLARIS Shield content-addressed verification bundle manifest.
+"""Build the VORLATH Shield content-addressed verification bundle manifest.
 
 "CI-gated" is not the same as "externally reproducible." This script produces a
 deterministic, signable manifest over every assurance-critical artifact — the source,
@@ -29,7 +29,7 @@ TECH = os.path.dirname(HERE)
 # Assurance-critical globs, relative to tech/. Anything that a reviewer must be able to
 # re-derive the proofs/tests from belongs here. Order does not matter (we sort).
 INCLUDE = [
-    "polaris_shield/**/*.py",
+    "vorlath_shield/**/*.py",
     "formal/*.vp", "formal/*.spthy", "formal/*.cv", "formal/*.ocv", "formal/*.pv",
     "formal/*.md", "formal/proverif.Dockerfile",
     "acvp/*.json", "acvp/*.py",
@@ -86,7 +86,7 @@ def main():
     bundle_digest = hashlib.sha256(canon.encode("utf-8")).hexdigest()
 
     manifest = {
-        "artifact": "polaris-shield",
+        "artifact": "vorlath-shield",
         "version": "2.0.0",
         "manifest_kind": "content-addressed-assurance-bundle",
         "hash_algorithm": "SHA-256",

@@ -1,4 +1,4 @@
-"""dudect-style leakage detection for POLARIS Shield operations.
+"""dudect-style leakage detection for VORLATH Shield operations.
 
 WHAT THIS IS
 ------------
@@ -52,7 +52,7 @@ from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from polaris_shield import shield  # noqa: E402
+from vorlath_shield import shield  # noqa: E402
 
 # --- dudect parameters ------------------------------------------------------
 DUDECT_THRESHOLD = 4.5     # standard |t| cutoff for "timing depends on input class"
@@ -217,13 +217,13 @@ def _prep_mlkem_decaps_invalid() -> Callable[[], object]:
 # --------------------------------------------------------------------------- #
 def _prep_shield_decrypt_valid() -> Callable[[], object]:
     pub, priv = shield.generate_recipient_keys(shield.DEFAULT_SUITE_ID)
-    env = shield.encrypt(b"polaris shield constant-time probe payload", pub)
+    env = shield.encrypt(b"vorlath shield constant-time probe payload", pub)
     return lambda: shield.decrypt(env, priv)
 
 
 def _prep_shield_decrypt_tampered() -> Callable[[], object]:
     pub, priv = shield.generate_recipient_keys(shield.DEFAULT_SUITE_ID)
-    env = bytearray(shield.encrypt(b"polaris shield constant-time probe payload", pub))
+    env = bytearray(shield.encrypt(b"vorlath shield constant-time probe payload", pub))
     env[-1] ^= 0x01  # corrupt the AEAD tag region -> InvalidTag on open
     bad_env = bytes(env)
 
@@ -345,7 +345,7 @@ def run_all(
 def _print_report(results: list[LeakageResult]) -> None:
     bar = "=" * 78
     print(bar)
-    print("POLARIS Shield — dudect-style leakage measurement (Welch's two-sample t-test)")
+    print("VORLATH Shield — dudect-style leakage measurement (Welch's two-sample t-test)")
     print(f"decision threshold: |t| > {DUDECT_THRESHOLD}  (dudect standard)")
     print(f"machine: {sys.platform} / python {sys.version.split()[0]} / perf_counter_ns")
     print(bar)
@@ -372,7 +372,7 @@ def _print_report(results: list[LeakageResult]) -> None:
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
-    parser = argparse.ArgumentParser(description="dudect-style leakage measurement for POLARIS Shield")
+    parser = argparse.ArgumentParser(description="dudect-style leakage measurement for VORLATH Shield")
     parser.add_argument(
         "--samples",
         type=int,

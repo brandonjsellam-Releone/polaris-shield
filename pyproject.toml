@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "polaris-shield"
+name = "vorlath-shield"
 version = "2.0.0"
-description = "POLARIS Shield — algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation."
+description = "VORLATH Shield — algorithm-agile post-quantum hybrid security (FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -35,14 +35,14 @@ dev = [
 ]
 
 [project.scripts]
-polaris-shield = "polaris_shield.__main__:main"
+vorlath-shield = "vorlath_shield.__main__:main"
 
 [project.urls]
-Homepage = "https://borealispolaris.io"
-Source = "https://github.com/brandonjsellam-Releone/borealispolaris"
+Homepage = "https://valyonvorlath.io"
+Source = "https://github.com/brandonjsellam-Releone/valyonvorlath"
 
 [tool.hatch.build.targets.wheel]
-packages = ["polaris_shield"]
+packages = ["vorlath_shield"]
 
 [tool.ruff]
 line-length = 110

@@ -1,8 +1,8 @@
 (* =====================================================================
-   POLARIS Shield — OPTIONAL one-step KEM-DEM secrecy corollary, in CryptoVerif
+   VORLATH Shield — OPTIONAL one-step KEM-DEM secrecy corollary, in CryptoVerif
    2.12 (oracle front end).  Companion to shield_combiner.cv.
 
-   Run (in the polaris-cryptoverif Docker image):
+   Run (in the vorlath-cryptoverif Docker image):
        opam exec -- cryptoverif -in oracles shield_kemdem.cv
 
    --------------------------------------------------------------------------

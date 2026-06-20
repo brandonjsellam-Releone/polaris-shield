@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""POLARIS Shield -- SP 800-208 LMS release signature (self-checking round trip).
+"""VORLATH Shield -- SP 800-208 LMS release signature (self-checking round trip).
 
 PURPOSE
   CNSA_MIGRATION.md section 3 mandates that "software/firmware signing migrates
-  first" under CNSA 2.0. POLARIS Shield already ships a deterministic, content-
+  first" under CNSA 2.0. VORLATH Shield already ships a deterministic, content-
   addressed release bundle (tech/release/RELEASE_MANIFEST.json) whose single
   bundle_digest is a SHA-256 Merkle-style root over every assurance-critical
   artifact, and CI cosign-signs it (keyless OIDC) plus emits SLSA provenance.
@@ -12,7 +12,7 @@ PURPOSE
   SP 800-208 LMS key, demonstrating the CNSA 2.0 firmware-signing-first workflow
   end to end on a genuinely low-volume signing surface (a handful of releases).
 
-  ML-DSA-87 remains POLARIS's general-purpose signature, and stateless SLH-DSA
+  ML-DSA-87 remains VORLATH's general-purpose signature, and stateless SLH-DSA
   is used wherever a long-lived signer is needed. LMS is confined to THIS narrow
   release-signing role precisely BECAUSE it is stateful.
 
@@ -83,7 +83,7 @@ EXIT CODES
   0 = key generated, signed once, and signature verified.
   nonzero = any failure (missing lib, exhausted/clobbered key, verify mismatch).
 
-ASCII only. No arrow glyphs anywhere in emitted text (POLARIS glyph rule).
+ASCII only. No arrow glyphs anywhere in emitted text (VORLATH glyph rule).
 """
 import hashlib
 import json
@@ -96,7 +96,7 @@ OUT_DIR = os.path.join(HERE, "release")
 
 # Basename pyhsslms uses for its key pair. genkey writes <KEY_BASENAME>.prv and
 # <KEY_BASENAME>.pub; HssLmsPublicKey(<KEY_BASENAME>) loads <KEY_BASENAME>.pub.
-KEY_BASENAME = os.path.join(OUT_DIR, "polaris_release")
+KEY_BASENAME = os.path.join(OUT_DIR, "vorlath_release")
 PRV_PATH = KEY_BASENAME + ".prv"
 PUB_PATH = KEY_BASENAME + ".pub"
 
@@ -158,7 +158,7 @@ def main():
     digest, source = load_bundle_digest()
     digest_hex = digest.hex()
 
-    print("POLARIS Shield -- SP 800-208 LMS release signing (demo, software-only)")
+    print("VORLATH Shield -- SP 800-208 LMS release signing (demo, software-only)")
     print("  signed payload : bundle_digest (SHA-256), %d bytes" % len(digest))
     print("  digest source  : " + source)
     print("  bundle_digest  : " + digest_hex)
@@ -244,7 +244,7 @@ def main():
 
     # Human-readable provenance sidecar (ASCII only, no arrow glyphs).
     with open(TXT_OUT, "w", encoding="ascii", newline="\n") as f:
-        f.write("POLARIS Shield LMS release signature (SP 800-208 aligned demo)\n")
+        f.write("VORLATH Shield LMS release signature (SP 800-208 aligned demo)\n")
         f.write("library        : pyhsslms 2.0.0 (RFC 8554 + SP 800-208 params)\n")
         f.write("posture        : software reference impl; NOT FIPS-validated;\n")
         f.write("                 NOT an HSM; standards-ALIGNED demo, not\n")

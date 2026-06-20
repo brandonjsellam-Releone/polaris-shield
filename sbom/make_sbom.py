@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Generate a CycloneDX 1.5 SBOM for POLARIS Shield from the DECLARED pinned deps.
+"""Generate a CycloneDX 1.5 SBOM for VORLATH Shield from the DECLARED pinned deps.
 
 This is the *deterministic, checked-in baseline* SBOM: it is generated only from
 `requirements.txt` + `pyproject.toml`, so it contains exactly the direct dependencies
@@ -28,7 +28,7 @@ _LICENSES = {
     "dilithium-py": "MIT",
     "slh-dsa": "MIT",
     "cryptography": "Apache-2.0 OR BSD-3-Clause",
-    "polaris-shield": "Apache-2.0",
+    "vorlath-shield": "Apache-2.0",
 }
 
 
@@ -92,18 +92,18 @@ def main():
             # No timestamp -> deterministic checked-in baseline. CI stamps the authoritative one.
             "component": {
                 "type": "application",
-                "name": "polaris-shield",
+                "name": "vorlath-shield",
                 "version": "2.0.0",
-                "purl": "pkg:pypi/polaris-shield@2.0.0",
-                "licenses": [{"expression": _LICENSES["polaris-shield"]}],
-                "description": ("POLARIS Shield - algorithm-agile post-quantum hybrid security "
+                "purl": "pkg:pypi/vorlath-shield@2.0.0",
+                "licenses": [{"expression": _LICENSES["vorlath-shield"]}],
+                "description": ("VORLATH Shield - algorithm-agile post-quantum hybrid security "
                                 "(FIPS 203/204, CNSA 2.0 algorithm set). Reference implementation."),
                 "externalReferences": [
-                    {"type": "website", "url": "https://borealispolaris.io"},
-                    {"type": "vcs", "url": "https://github.com/brandonjsellam-Releone/borealispolaris"},
+                    {"type": "website", "url": "https://valyonvorlath.io"},
+                    {"type": "vcs", "url": "https://github.com/brandonjsellam-Releone/valyonvorlath"},
                 ],
             },
-            "tools": [{"vendor": "POLARIS", "name": "make_sbom.py", "version": "1.0"}],
+            "tools": [{"vendor": "VORLATH", "name": "make_sbom.py", "version": "1.0"}],
             "properties": [
                 {"name": "sbom:scope", "value": "declared-direct-dependencies"},
                 {"name": "sbom:note",

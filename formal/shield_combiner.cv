@@ -1,8 +1,8 @@
 (* =====================================================================
-   POLARIS Shield — mechanized COMPUTATIONAL proof of the hybrid combiner's
+   VORLATH Shield — mechanized COMPUTATIONAL proof of the hybrid combiner's
    core key-indistinguishability claim, in CryptoVerif 2.12 (oracle front end).
 
-   Run (in the polaris-cryptoverif Docker image):
+   Run (in the vorlath-cryptoverif Docker image):
        opam exec -- cryptoverif -in oracles shield_combiner.cv
    This file uses the ORACLE front end (Oxxx() := ...), so it MUST be run with
    "-in oracles" (CryptoVerif otherwise defaults to the channel front end and
@@ -15,7 +15,7 @@
    The Shield session/AEAD key is (tech/SECURITY_ARGUMENT.md §1;
    shield.py:_derive_key, lines 224-234):
 
-       K = HKDF(salt = "POLARIS-Shield-combiner/v2",
+       K = HKDF(salt = "VORLATH-Shield-combiner/v2",
                 IKM  = u16(len ss_c) ‖ ss_c ‖ u16(len ss_pq) ‖ ss_pq,
                 info = label ‖ suite_id ‖ pre_auth,
                 L    = 32)

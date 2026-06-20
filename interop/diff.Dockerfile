@@ -1,4 +1,4 @@
-# Differential cross-validation image for the POLARIS Shield PRIMITIVES.
+# Differential cross-validation image for the VORLATH Shield PRIMITIVES.
 #
 # This image stands up the pinned pure-Python reference primitives ALONGSIDE a
 # second, INDEPENDENT implementation (pqcrypto = PQClean C via CFFI, Linux
@@ -12,12 +12,12 @@
 # Build (the build IS the verification — a successful build == all four
 # parameter sets agreed across both implementations on every iteration):
 #
-#     docker build -f tech/interop/diff.Dockerfile -t polaris-shield-diff tech/interop
+#     docker build -f tech/interop/diff.Dockerfile -t vorlath-shield-diff tech/interop
 #
 # Run more iterations / reproduce a specific seed interactively:
 #
-#     docker run --rm polaris-shield-diff python cross_impl.py -n 1000
-#     docker run --rm polaris-shield-diff python cross_impl.py --seed <hexseed>
+#     docker run --rm vorlath-shield-diff python cross_impl.py -n 1000
+#     docker run --rm vorlath-shield-diff python cross_impl.py --seed <hexseed>
 #
 # pqcrypto ships manylinux wheels for these four parameter sets, so NO apt /
 # cmake / compiler is needed — a single pip line on python:3.12-slim suffices.

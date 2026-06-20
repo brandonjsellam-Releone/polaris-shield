@@ -1,8 +1,8 @@
-theory POLARIS_Shield
+theory VORLATH_Shield
 begin
 
 /*
-  POLARIS Shield hybrid handshake - Tamarin symbolic model (UNBOUNDED sessions).
+  VORLATH Shield hybrid handshake - Tamarin symbolic model (UNBOUNDED sessions).
 
   An INDEPENDENT, complementary second formal-verification lineage beside the
   Verifpal models (tech/formal/shield*.vp): Tamarin proves the security goals

@@ -1,4 +1,4 @@
-# POLARIS Shield — threat model
+# VORLATH Shield — threat model
 
 ## Assets
 - **Confidentiality** of plaintext sealed in a Shield envelope.

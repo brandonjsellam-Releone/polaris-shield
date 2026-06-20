@@ -39,7 +39,7 @@ cannot see.
 ## Result (verified live)
 
 ```
-docker run --rm polaris-shield-diff python cross_impl.py -n 500
+docker run --rm vorlath-shield-diff python cross_impl.py -n 500
   ML-KEM-768    500/500   PASS
   ML-KEM-1024   500/500   PASS
   ML-DSA-65     500/500   PASS
@@ -68,8 +68,8 @@ base-seed, and offending hex, and the exit code is driven purely by the mismatch
 ```bash
 # Hermetic Linux gate (the build runs the cross-validation; pqcrypto resolves to a manylinux wheel,
 # so no apt/cmake/compiler is needed):
-docker build -f tech/interop/diff.Dockerfile -t polaris-shield-diff tech/interop
-docker run --rm polaris-shield-diff python cross_impl.py -n 1000
+docker build -f tech/interop/diff.Dockerfile -t vorlath-shield-diff tech/interop
+docker run --rm vorlath-shield-diff python cross_impl.py -n 1000
 
 # Local (if kyber-py/dilithium-py/pqcrypto are installed; pqcrypto needs a Linux/manylinux host):
 python tech/interop/cross_impl.py -n 300

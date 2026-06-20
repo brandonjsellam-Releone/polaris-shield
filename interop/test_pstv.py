@@ -4,7 +4,7 @@ Reads the FROZEN ``interop/pstv_vectors.json`` corpus (never the generator) and,
 for every vector, checks that two SEPARATELY-CODED implementations (which share the
 same primitive libraries) agree:
 
-  * the REFERENCE ``polaris_shield`` (shield.decrypt / decrypt_authenticated /
+  * the REFERENCE ``vorlath_shield`` (shield.decrypt / decrypt_authenticated /
     open_stream), and
   * the SEPARATELY-CODED ``interop.altcodec`` (written only from FORMAT.md; it shares
     the kyber-py / dilithium-py / cryptography primitive libraries by design).
@@ -36,7 +36,7 @@ import sys
 import pytest
 from cryptography.exceptions import InvalidTag
 
-# Mirror the repo's path shim so polaris_shield + interop import under bare pytest.
+# Mirror the repo's path shim so vorlath_shield + interop import under bare pytest.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _TECH = os.path.dirname(_HERE)
 for _p in (_TECH, _HERE):
@@ -44,7 +44,7 @@ for _p in (_TECH, _HERE):
         sys.path.insert(0, _p)
 
 from interop import altcodec  # noqa: E402
-from polaris_shield import shield  # noqa: E402
+from vorlath_shield import shield  # noqa: E402
 
 VECTORS_PATH = os.path.join(_HERE, "pstv_vectors.json")
 with open(VECTORS_PATH, encoding="utf-8") as _fh:
@@ -95,7 +95,7 @@ _MESSAGE_CATEGORY = (
     ("wrong recipient key", "wrong_recipient"),
     ("recipient key suite does not match", "suite_mismatch"),
     # magic / version identity — a separate 'framing' category (not a length problem).
-    ("not a POLARIS Shield", "framing"),
+    ("not a VORLATH Shield", "framing"),
     ("unsupported Shield", "framing"),
     # exact-length (off+clen==len) bound — single-shot trailing-data / short-read.
     ("envelope length mismatch", "trailing_data"),
@@ -331,14 +331,14 @@ def test_both_implementations_agree_on_negative(vec):
 # --------------------------------------------------------------------------- #
 # Invariant pins — locks on the construction itself, not just the rejection.
 # --------------------------------------------------------------------------- #
-_STREAM_MAGIC = b"PLST"
+_STREAM_MAGIC = b"VRST"
 
 
 def _stream_blob_count(env: bytes) -> int:
-    """Count PLST chunk blobs by walking the wire form (FORMAT.md §4.2–§4.3).
+    """Count VRST chunk blobs by walking the wire form (FORMAT.md §4.2–§4.3).
 
     Walks the 4 header TLVs + the u32 chunk_size, then counts [u32 len][blob] frames.
-    Returns 0 if the envelope is not a well-framed PLST stream (so a truncated-header
+    Returns 0 if the envelope is not a well-framed VRST stream (so a truncated-header
     negative is correctly excluded from the multi-chunk invariant below).
     """
     if len(env) < 7 or env[:4] != _STREAM_MAGIC:

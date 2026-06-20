@@ -1,4 +1,4 @@
-# POLARIS Shield — CNSA 2.0 migration & deployment posture
+# VORLATH Shield — CNSA 2.0 migration & deployment posture
 
 A self-assessment against the **public** US-government PQC migration framework, and the
 gov-aligned modes that take the Shield from "standards-aligned reference implementation" toward an
@@ -32,7 +32,7 @@ their NIST levels; the dates are the published CNSA 2.0 values.
 ## 2. Pure-CNSA-2.0 mode (IMPLEMENTED 2026-06-20: suite `0x03`)
 
 NSA's stated NSS **end state** is *pure* PQC; hybrid is treated as transition-only added complexity,
-not the preferred NSS configuration (CNSA 2.0 & QC FAQ). POLARIS is hybrid by **default** (matching
+not the preferred NSS configuration (CNSA 2.0 & QC FAQ). VORLATH is hybrid by **default** (matching
 NIST/IETF/commercial transition practice) and now **also ships the pure-PQC end-state** as an opt-in suite.
 
 **Shipped.** Suite `0x03` (`CNSA-2.0-pure`): ML-KEM-1024 + ML-DSA-87 + AES-256-GCM + HKDF-SHA384, with
@@ -74,7 +74,7 @@ ML-DSA-87 stays the general-purpose signature; LMS is *only* for this release ro
 800-208-*compliant* signing service: SP 800-208 requires key generation and signing inside a
 **non-exporting hardware module (HSM)** with hardware-enforced state, which a pure-Python library
 **categorically cannot** provide. The one-time-signature **state must never be reused** (one signature
-per leaf — catastrophic on reuse). This is exactly why POLARIS uses **stateless** SLH-DSA elsewhere;
+per leaf — catastrophic on reuse). This is exactly why VORLATH uses **stateless** SLH-DSA elsewhere;
 stateful LMS is justified *only* for the narrow, low-volume, carefully-state-managed release-signing
 case, and a production deployment would move keygen + signing into an HSM.
 
@@ -82,7 +82,7 @@ case, and a production deployment would move keygen + signing into an HSM.
 
 NSA's **Commercial Solutions for Classified (CSfC)** protects classified data over commercial
 products by composing **two independent encryption layers** (outer + inner) with implementation /
-vendor diversity and distinct keys. POLARIS's in-line hybrid combiner is a single-protocol echo of
+vendor diversity and distinct keys. VORLATH's in-line hybrid combiner is a single-protocol echo of
 defense-in-depth, **not** two physically independent layers.
 
 **CSfC dual-layer (design).** Position the Shield envelope as the **inner** quantum-resistant layer

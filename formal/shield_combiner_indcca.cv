@@ -1,9 +1,9 @@
 (* =====================================================================
-   POLARIS Shield -- mechanizing the COMBINED-KEM IND-CCA composition seam
+   VORLATH Shield -- mechanizing the COMBINED-KEM IND-CCA composition seam
    that shield_combiner.cv / shield_kemdem.cv deliberately abstract.
    CryptoVerif 2.12, ORACLE front end.
 
-   Run (in the polaris-cryptoverif Docker image):
+   Run (in the vorlath-cryptoverif Docker image):
        opam exec -- cryptoverif -in oracles shield_combiner_indcca.cv
    This file uses the ORACLE front end (Oxxx() := ...), so it MUST be run with
    "-in oracles". A byte-identical .ocv copy is kept beside it (the .ocv
@@ -11,7 +11,7 @@
 
    *** RUN-TO-CONFIRM NOTICE (READ THIS) ***
    This model mechanizes the combined-KEM IND-CCA seam (seam (b) of
-   VERIFICATION_GAP_MAP.md). When the author ran it in the polaris-cryptoverif
+   VERIFICATION_GAP_MAP.md). When the author ran it in the vorlath-cryptoverif
    image (CryptoVerif 2.12, -in oracles), the tool emitted "All queries proved"
    with the bound recorded in the EXPECTED block at the bottom (carrying the
    ML-KEM IND-CCA term 2 * Adv_PQ_CCA). The orchestrator MUST RE-RUN it under CI

@@ -1,5 +1,5 @@
 """NIST ACVP conformance for SLH-DSA (FIPS 205) — the hash-based scheme the Shield's
-high-assurance / dual-signature mode (polaris_shield/highassurance.py) is built on.
+high-assurance / dual-signature mode (vorlath_shield/highassurance.py) is built on.
 
 Coverage: SLH-DSA sigVer, external-pure interface, for EXACTLY the parameter sets the
 high-assurance module deploys — SHAKE-256s (the default) and SHAKE-128s. A handful of
@@ -20,7 +20,7 @@ import slhdsa
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VEC = json.load(open(os.path.join(HERE, "acvp", "acvp_vectors.json"), encoding="utf-8"))
-# The deployed high-assurance sets (polaris_shield/highassurance.py): 256s default + 128s.
+# The deployed high-assurance sets (vorlath_shield/highassurance.py): 256s default + 128s.
 SLH_PARAMS = {"SLH-DSA-SHAKE-256s": slhdsa.shake_256s, "SLH-DSA-SHAKE-128s": slhdsa.shake_128s}
 
 
@@ -50,7 +50,7 @@ def test_slhdsa_vectors_present_and_mixed():
 def test_slhdsa_acvp_covers_the_deployed_sets():
     # The ACVP sigVer vectors must cover EXACTLY the SLH-DSA sets the product ships, so the
     # 'ACVP-validated' claim cannot drift away from what highassurance.py actually deploys.
-    from polaris_shield import highassurance as ha
+    from vorlath_shield import highassurance as ha
 
     deployed = {name.split(" ", 1)[0] for _param, name in ha._HA_PARAMS.values()}
     assert deployed == {"SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-128s"}

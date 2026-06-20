@@ -1,5 +1,5 @@
 name: provenance
-# Supply-chain attestation for POLARIS Shield: deterministic verification bundle +
+# Supply-chain attestation for VORLATH Shield: deterministic verification bundle +
 # CycloneDX SBOM + cosign (keyless OIDC) signature + SLSA build-provenance attestation.
 # Runs on tagged releases and can be dispatched manually. Honest scope: this attests WHAT was
 # built and that it traces to this repo's OIDC identity — it is not a FIPS/CMVP validation.
@@ -40,8 +40,8 @@ jobs:
 
       - name: Package the signed payloads
         run: |
-          tar -czf polaris-shield-bundle.tar.gz \
-            polaris_shield formal acvp interop sidechannel \
+          tar -czf vorlath-shield-bundle.tar.gz \
+            vorlath_shield formal acvp interop sidechannel \
             *.md *.py kat_vectors.json requirements.txt pyproject.toml Dockerfile \
             sbom release
 
@@ -53,8 +53,8 @@ jobs:
           COSIGN_YES: "true"
         run: |
           cosign sign-blob --yes \
-            --output-signature   polaris-shield-bundle.sig \
-            --output-certificate polaris-shield-bundle.pem \
+            --output-signature   vorlath-shield-bundle.sig \
+            --output-certificate vorlath-shield-bundle.pem \
             release/RELEASE_MANIFEST.json
           cosign sign-blob --yes \
             --output-signature   sbom.cdx.sig \
@@ -64,18 +64,18 @@ jobs:
       - name: SLSA build-provenance attestation for the bundle
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: polaris-shield-bundle.tar.gz
+          subject-path: vorlath-shield-bundle.tar.gz
 
       - name: Publish verification assets to the release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            polaris-shield-bundle.tar.gz
+            vorlath-shield-bundle.tar.gz
             release/RELEASE_MANIFEST.json
             release/RELEASE_MANIFEST.sha256
-            polaris-shield-bundle.sig
-            polaris-shield-bundle.pem
+            vorlath-shield-bundle.sig
+            vorlath-shield-bundle.pem
             sbom/sbom.cdx.json
             sbom/sbom.full.cdx.json
             sbom.cdx.sig

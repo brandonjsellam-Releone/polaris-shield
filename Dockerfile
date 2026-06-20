@@ -1,10 +1,10 @@
-# Hermetic reproducibility image for the POLARIS Shield assurance stack.
+# Hermetic reproducibility image for the VORLATH Shield assurance stack.
 #
 # One command reproduces EVERY check green on Linux with the REAL pinned
 # dependencies (resolves any host cryptography-version drift; proves Linux
 # reproducibility of a Windows-developed project):
 #
-#     docker build -f tech/Dockerfile -t polaris-shield-verify tech
+#     docker build -f tech/Dockerfile -t vorlath-shield-verify tech
 #
 # A successful build == ruff + mypy + the full pytest suite + KAT reproducibility
 # + the live demo + Verifpal (2 bounded models) + Tamarin (11 unbounded lemmas),
@@ -42,12 +42,12 @@ RUN pip install --no-cache-dir -e ".[dev]" \
 
 # --- the assurance stack; any non-zero exit fails the build ---
 RUN echo '>> ruff'   && ruff check .
-RUN echo '>> mypy'   && mypy polaris_shield
+RUN echo '>> mypy'   && mypy vorlath_shield
 RUN echo '>> pytest' && pytest -q -p no:cacheprovider
 RUN echo '>> KAT reproducibility' \
  && cp kat_vectors.json /tmp/kat.orig && python gen_kat_vectors.py \
  && diff --strip-trailing-cr -q kat_vectors.json /tmp/kat.orig && echo 'KAT vectors reproducible'
-RUN echo '>> live demo' && python -m polaris_shield demo >/dev/null && echo 'demo ok'
+RUN echo '>> live demo' && python -m vorlath_shield demo >/dev/null && echo 'demo ok'
 RUN echo '>> Verifpal (bounded)' \
  && verifpal verify formal/shield.vp    2>&1 | tee /tmp/v1 && grep -q 'queries pass' /tmp/v1 \
  && verifpal verify formal/shield_pq.vp 2>&1 | tee /tmp/v2 && grep -q 'queries pass' /tmp/v2
@@ -56,7 +56,7 @@ RUN echo '>> Tamarin (unbounded)' \
  && ! grep -qiE 'falsified|analysis incomplete' /tmp/tam.log \
  && [ "$(grep -cE 'verified \([0-9]+ steps\)' /tmp/tam.log)" -ge 11 ]
 RUN echo '==================================================================' \
- && echo ' ALL POLARIS SHIELD ASSURANCE CHECKS GREEN (Linux, cryptography>=48)' \
+ && echo ' ALL VORLATH SHIELD ASSURANCE CHECKS GREEN (Linux, cryptography>=48)' \
  && echo '=================================================================='
 
 # Default: re-run the fast suite when the image is run.

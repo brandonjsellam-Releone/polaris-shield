@@ -1,4 +1,4 @@
-"""POLARIS Shield side-channel measurement harness.
+"""VORLATH Shield side-channel measurement harness.
 
 A *measurement* tool, not a fix. It quantifies the timing dependency that
 ``SECURITY.md`` already discloses (the pure-Python PQ legs are not constant-time)

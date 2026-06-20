@@ -1,4 +1,4 @@
-"""POLARIS Shield — high-assurance, algorithm-diversified signatures (FIPS 205 SLH-DSA).
+"""VORLATH Shield — high-assurance, algorithm-diversified signatures (FIPS 205 SLH-DSA).
 
 OPT-IN. The core uses lattice ML-DSA (FIPS 204). This module adds **SLH-DSA** (FIPS 205),
 a *stateless hash-based* signature with a fundamentally different mathematical basis. Used
@@ -22,7 +22,7 @@ from . import shield
 _HA_MAGIC = b"PLHA"      # high-assurance SLH-DSA key bundle
 _DUAL_MAGIC = b"PLDU"    # dual (ML-DSA + SLH-DSA) signature
 _ROLE_PUB, _ROLE_PRIV = 0, 1
-HA_CTX = b"POLARIS-Shield/ha-sig/v1"
+HA_CTX = b"VORLATH-Shield/ha-sig/v1"
 
 # param_id -> (slhdsa parameter, human name)
 _HA_PARAMS: dict[int, tuple[Any, str]] = {
@@ -41,7 +41,7 @@ def _param(pid: int):
 
 def ha_param_name(bundle: bytes) -> str:
     if len(bundle) < 6 or bundle[:4] != _HA_MAGIC:
-        raise ValueError("not a POLARIS Shield high-assurance key bundle")
+        raise ValueError("not a VORLATH Shield high-assurance key bundle")
     return _HA_PARAMS[bundle[4]][1]
 
 
@@ -56,7 +56,7 @@ def generate_high_assurance_keys(param_id: int = DEFAULT_HA_ID) -> tuple[bytes, 
 
 def _parse_ha(bundle: bytes, role: int) -> tuple[int, bytes]:
     if len(bundle) < 6 or bundle[:4] != _HA_MAGIC:
-        raise ValueError("not a POLARIS Shield high-assurance key bundle")
+        raise ValueError("not a VORLATH Shield high-assurance key bundle")
     if bundle[5] != role:
         raise ValueError("wrong high-assurance key role")
     return bundle[4], bundle[6:]

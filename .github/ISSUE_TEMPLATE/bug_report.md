@@ -21,6 +21,6 @@ Steps / commands (ideally something from REPRODUCE.md or the test suite):
 **Environment**
 - OS:
 - Python version:
-- POLARIS Shield version / commit:
+- VORLATH Shield version / commit:
 
 **Does it reproduce from a clean checkout?** (see REPRODUCE.md)

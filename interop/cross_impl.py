@@ -1,6 +1,6 @@
 """cross_impl — differential cross-validation of the ML-KEM / ML-DSA PRIMITIVES.
 
-POLARIS Shield pins two pure-Python reference implementations:
+VORLATH Shield pins two pure-Python reference implementations:
 
   * ``kyber-py`` 1.2.0   — FIPS 203 ML-KEM (ML-KEM-768 / ML-KEM-1024)
   * ``dilithium-py`` 1.4.0 — FIPS 204 ML-DSA (ML-DSA-65 / ML-DSA-87)
@@ -55,7 +55,7 @@ import argparse
 import os
 import sys
 
-# --- the pinned reference primitives (the libs POLARIS Shield actually uses) ---
+# --- the pinned reference primitives (the libs VORLATH Shield actually uses) ---
 from dilithium_py.ml_dsa import ML_DSA_65, ML_DSA_87
 from kyber_py.ml_kem import ML_KEM_768, ML_KEM_1024
 
@@ -193,7 +193,7 @@ def run(iterations: int, seed: int | None) -> int:
     """
     base = os.urandom(8) if seed is None else seed.to_bytes(8, "big")
     print(
-        "POLARIS Shield — primitive differential cross-validation\n"
+        "VORLATH Shield — primitive differential cross-validation\n"
         f"  reference : kyber-py 1.2.0 / dilithium-py 1.4.0 (pure-Python, FIPS 203/204)\n"
         f"  independent: pqcrypto 0.3.4 (PQClean C via CFFI)\n"
         f"  iterations : {iterations} per algorithm   base-seed: {base.hex()}\n"

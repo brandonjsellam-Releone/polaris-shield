@@ -1,15 +1,15 @@
-"""POLARIS Shield CLI (v2).
+"""VORLATH Shield CLI (v2).
 
     cd tech
-    python -m polaris_shield demo
-    python -m polaris_shield keygen  --prefix alice [--suite 2] [--passphrase pw]
-    python -m polaris_shield encrypt --to alice.kem.pub --in secret.txt --out secret.trsh \
+    python -m vorlath_shield demo
+    python -m vorlath_shield keygen  --prefix alice [--suite 2] [--passphrase pw]
+    python -m vorlath_shield encrypt --to alice.kem.pub --in secret.txt --out secret.trsh \
                                      [--sign-key bob.sig.key --sign-pub bob.sig.pub]
-    python -m polaris_shield decrypt --key alice.kem.key --in secret.trsh --out out.txt \
+    python -m vorlath_shield decrypt --key alice.kem.key --in secret.trsh --out out.txt \
                                      [--expect-sender bob.sig.pub] [--passphrase pw]
-    python -m polaris_shield sign    --key alice.sig.key --in doc.pdf --out doc.sig [--passphrase pw]
-    python -m polaris_shield verify  --pub alice.sig.pub --in doc.pdf --sig doc.sig
-    python -m polaris_shield info    --in secret.trsh
+    python -m vorlath_shield sign    --key alice.sig.key --in doc.pdf --out doc.sig [--passphrase pw]
+    python -m vorlath_shield verify  --pub alice.sig.pub --in doc.pdf --sig doc.sig
+    python -m vorlath_shield info    --in secret.trsh
 """
 import argparse
 import base64
@@ -135,15 +135,15 @@ def cmd_info(a):
     env = open(a.infile, "rb").read()
     if env[:4] == shield.STREAM_MAGIC:
         s = shield.SUITES.get(env[5])
-        print(f"POLARIS Shield STREAM v{env[4]}")
+        print(f"VORLATH Shield STREAM v{env[4]}")
         print(f"  suite        0x{env[5]:02x}  {s.name if s else 'UNKNOWN'}")
         print(f"  total size    {len(env)} bytes (chunked)")
         return
     if env[:4] != shield.MAGIC:
-        sys.exit("not a POLARIS Shield envelope")
+        sys.exit("not a VORLATH Shield envelope")
     suite_id, flags = env[5], env[6]
     s = shield.SUITES.get(suite_id)
-    print(f"POLARIS Shield envelope v{env[4]}")
+    print(f"VORLATH Shield envelope v{env[4]}")
     print(f"  suite        0x{suite_id:02x}  {s.name if s else 'UNKNOWN'}")
     print(f"  authenticated {'yes' if flags & shield.FLAG_AUTHENTICATED else 'no'}")
     print(f"  total size    {len(env)} bytes")
@@ -153,10 +153,10 @@ def cmd_demo(a):
     line = "=" * 70
     s = shield.SUITES[a.suite]
     print(line)
-    print("  POLARIS SHIELD v2 - live post-quantum demonstration")
+    print("  VORLATH SHIELD v2 - live post-quantum demonstration")
     print("  " + s.name)
     print(line)
-    msg = b"TOP SECRET // BOREALIS POLARIS // sovereign key material 2026"
+    msg = b"TOP SECRET // VALYON VORLATH // sovereign key material 2026"
     pub, priv = shield.generate_recipient_keys(a.suite)
     print(f"\n  recipient key-id: {shield.kem_key_id(pub).hex()}")
 
@@ -219,8 +219,8 @@ def cmd_demo(a):
 
 def main(argv=None):
     p = argparse.ArgumentParser(
-        prog="polaris-shield",
-        description="POLARIS Shield v2 - post-quantum hybrid security (FIPS 203/204, CNSA 2.0).")
+        prog="vorlath-shield",
+        description="VORLATH Shield v2 - post-quantum hybrid security (FIPS 203/204, CNSA 2.0).")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     def suite_arg(sp):

@@ -1,4 +1,4 @@
-# POLARIS Shield — formal-coverage matrix (one authoritative table)
+# VORLATH Shield — formal-coverage matrix (one authoritative table)
 
 This is the single page a reviewer should read to know **exactly what is machine-checked,
 what is argued by reduction, and what is explicitly out of scope** — and the mapping from
@@ -8,8 +8,8 @@ each prover artifact to a standard security goal. It consolidates the per-tool t
 
 ## What this is, and is NOT (read first)
 
-- **POLARIS Shield is a post-quantum *cryptography* reference implementation** that runs on
-  ordinary classical machines. It is the runnable form of the BOREALIS / POLARIS "L9 root of
+- **VORLATH Shield is a post-quantum *cryptography* reference implementation** that runs on
+  ordinary classical machines. It is the runnable form of the VALYON / VORLATH "L9 root of
   trust" layer. **It is not a quantum computer and contains no quantum hardware.** The
   "quantum-computing citadel" is a separate, speculative *systems* hypothesis in the dossier;
   the Shield is the one piece of that vision that is real, runnable, and verifiable today.

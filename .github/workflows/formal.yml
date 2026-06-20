@@ -1,4 +1,4 @@
-name: POLARIS Shield — formal verification
+name: VORLATH Shield — formal verification
 
 # Heavy Dolev-Yao symbolic proof (Verifpal) + the unbounded Tamarin / ProVerif lineages and the
 # computational CryptoVerif proofs. Narrow trigger so routine changes (tests, interop vectors, docs)
@@ -8,12 +8,12 @@ on:
   push:
     paths:
       - "formal/**"
-      - "polaris_shield/shield.py"
+      - "vorlath_shield/shield.py"
       - ".github/workflows/formal.yml"
   pull_request:
     paths:
       - "formal/**"
-      - "polaris_shield/shield.py"
+      - "vorlath_shield/shield.py"
       - ".github/workflows/formal.yml"
   workflow_dispatch:
 

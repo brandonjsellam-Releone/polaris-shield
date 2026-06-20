@@ -1,6 +1,6 @@
-# Security policy & honest assurance posture — POLARIS Shield
+# Security policy & honest assurance posture — VORLATH Shield
 
-POLARIS Shield is a **reference implementation** of a post-quantum hybrid cryptosystem. It is
+VORLATH Shield is a **reference implementation** of a post-quantum hybrid cryptosystem. It is
 built to be *correct and standards-faithful*, and it is deliberately honest about what it is
 **not**. Read this before using it for anything that matters.
 
@@ -72,7 +72,7 @@ properties and assumptions.
 
 ## Reporting
 
-This is a component of the **speculative** BOREALIS / POLARIS concept (a strategic exercise, not a
+This is a component of the **speculative** VALYON / VORLATH concept (a strategic exercise, not a
 funded venture) and is **not** affiliated with the separate TRELYAN project. If you find a defect
 in the construction, open an issue describing the property violated and a reproducing case. Do not
 report cryptanalysis intended for operational misuse. The full coordinated-disclosure policy

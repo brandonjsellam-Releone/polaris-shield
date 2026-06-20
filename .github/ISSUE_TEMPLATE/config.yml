@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability (do NOT open a public issue)
-    url: https://github.com/brandonjsellam-Releone/polaris-shield/blob/main/SECURITY-DISCLOSURE.md
+    url: https://github.com/brandonjsellam-Releone/vorlath-shield/blob/main/SECURITY-DISCLOSURE.md
     about: Report cryptographic or security issues privately via coordinated disclosure. See SECURITY-DISCLOSURE.md.
   - name: How to verify a claim yourself
-    url: https://github.com/brandonjsellam-Releone/polaris-shield/blob/main/REPRODUCE.md
+    url: https://github.com/brandonjsellam-Releone/vorlath-shield/blob/main/REPRODUCE.md
     about: Re-derive the tests, the four proof lineages, and the constant-time measurement from a clean checkout.

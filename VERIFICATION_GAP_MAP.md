@@ -1,4 +1,4 @@
-# POLARIS Shield - verification gap map (the case against our own claims)
+# VORLATH Shield - verification gap map (the case against our own claims)
 
 Every other document here argues *for* the design. This one argues *against* it. It is the
 hostile review a world-class cryptographer would write, published by us, first - because a
@@ -16,7 +16,7 @@ name the seams before a reviewer does.
   lineages) reason about **models**.
 - The **tests** (497-suite, ACVP, interop, **cross-impl differential**, dudect) exercise the **code**.
 - The bridge between a model and the code is **human-authored faithfulness** - the models were
-  written to mirror `polaris_shield/shield.py` and `FORMAT.md`. **No prover runs the actual
+  written to mirror `vorlath_shield/shield.py` and `FORMAT.md`. **No prover runs the actual
   Python.** A divergence ("the model says X, the code does Y") is not automatically caught. That
   is the single most important thing to understand before trusting any green checkmark here.
 
@@ -72,14 +72,14 @@ This page is only credible if you can act on it. Each weak seam has a falsificat
 
 - **(a)** run a differential harness: same seeds/coins/messages through `kyber-py`/`dilithium-py`
   **and** a second library; any disagreement is a finding. **Implemented:** `interop/cross_impl.py`
-  vs `pqcrypto` (PQClean/C); `docker build -f interop/diff.Dockerfile -t polaris-shield-diff interop`
+  vs `pqcrypto` (PQClean/C); `docker build -f interop/diff.Dockerfile -t vorlath-shield-diff interop`
   runs it as the build gate. See [`interop/CROSS_IMPL.md`](interop/CROSS_IMPL.md).
 - **(b)** re-run both composition models (CryptoVerif, `-in oracles`): `formal/shield_combiner_indcca.cv`
   must emit "All queries proved" with the `Adv_PQ_CCA` term, and `formal/shield_combiner_dh.cv` with the
   `Adv_GDH` term. Attack the residual: the assumptions themselves (ML-KEM IND-CCA / Gap-DH), the
   perfect-correctness assumption (no decryption error), curve point-validation, or HKDF-as-ROM. The
   prior hand-written reduction is in `SECURITY_ARGUMENT.md` section 3 / `COMBINER_CRYPTOVERIF.md`.
-- **(c)** diff `shield.spthy` / `shield.pv` against `polaris_shield/shield.py` and `FORMAT.md`; any
+- **(c)** diff `shield.spthy` / `shield.pv` against `vorlath_shield/shield.py` and `FORMAT.md`; any
   field the model omits or reorders is a divergence.
 - **(d)** extend `sidechannel/ct_measure.py` to a new leakage class.
 - general: `REPRODUCE.md` re-runs every green check on your own machine. If any does not reproduce,

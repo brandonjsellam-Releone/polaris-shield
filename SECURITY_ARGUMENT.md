@@ -1,4 +1,4 @@
-# POLARIS Shield — computational security argument for the hybrid combiner
+# VORLATH Shield — computational security argument for the hybrid combiner
 
 > **What this is.** The Verifpal and Tamarin models in [`formal/`](formal/) prove the *protocol
 > logic* (Dolev-Yao, symbolic). This note adds the layer a cryptographer asks for next: a
@@ -22,7 +22,7 @@ The session/AEAD key is derived by a **length-framed concatenation KEM combiner 
 (`shield.py:_derive_key`, [`FORMAT.md` §2.6](FORMAT.md)):
 
 ```
-K = HKDF(salt = "POLARIS-Shield-combiner/v2",
+K = HKDF(salt = "VORLATH-Shield-combiner/v2",
          IKM  = u16(len ss_c) ‖ ss_c ‖ u16(len ss_pq) ‖ ss_pq,
          info = label ‖ suite_id ‖ pre_auth,
          L    = 32)                                 # AES-256 key

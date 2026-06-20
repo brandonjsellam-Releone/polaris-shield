@@ -1,4 +1,4 @@
-# POLARIS Shield — signed, reproducible release bundle
+# VORLATH Shield — signed, reproducible release bundle
 
 This directory turns the assurance work into something a third party can **fetch, verify, and
 re-run** without trusting our CI. Two artifacts, one digest, one signature.
@@ -24,15 +24,15 @@ sha256sum -c release/RELEASE_MANIFEST.sha256      # every file: OK
 
 # 2. Confirm the signature over the published bundle (keyless cosign / Sigstore)
 cosign verify-blob \
-  --certificate-identity-regexp 'github.com/brandonjsellam-Releone/borealispolaris' \
+  --certificate-identity-regexp 'github.com/brandonjsellam-Releone/valyonvorlath' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --signature   polaris-shield-bundle.sig \
-  --certificate polaris-shield-bundle.pem \
+  --signature   vorlath-shield-bundle.sig \
+  --certificate vorlath-shield-bundle.pem \
   release/RELEASE_MANIFEST.json
 
 # 3. Confirm SLSA build provenance traces to the exact commit
-gh attestation verify polaris-shield-bundle.tar.gz \
-  --repo brandonjsellam-Releone/borealispolaris
+gh attestation verify vorlath-shield-bundle.tar.gz \
+  --repo brandonjsellam-Releone/valyonvorlath
 ```
 
 If step 1's digest equals the signed digest from step 2, the proofs/tests you re-run from

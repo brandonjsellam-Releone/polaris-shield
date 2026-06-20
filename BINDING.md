@@ -1,11 +1,11 @@
-# POLARIS Shield — KEM binding (X-BIND-K-CT and X-BIND-K-PK)
+# VORLATH Shield — KEM binding (X-BIND-K-CT and X-BIND-K-PK)
 
 > **What this page is.** A rigorous, *honest* account of one question on the 2024-2026
 > KEM-binding frontier: does a shared secret **K** uniquely name the ciphertext that
 > produced it (**X-BIND-K-CT**) and the public key it was produced under
 > (**X-BIND-K-PK**), and under which adversary key-access level? It states **exactly what
 > bare ML-KEM (FIPS 203) guarantees in 2026** — no more, no less — and then shows that the
-> POLARIS Shield handshake **binds `kem_ct` AND `recipient_key_id` (= H(recipient hybrid
+> VORLATH Shield handshake **binds `kem_ct` AND `recipient_key_id` (= H(recipient hybrid
 > public keys)) into BOTH the KDF transcript and the signed `pre_auth`**, so the key the
 > Shield actually *uses* and the tuples it *accepts* are bound to `(ct, pk, suite,
 > transcript)` even on inputs where a bare KEM's K is not.
@@ -47,7 +47,7 @@ The BIND family generalizes earlier "robustness / collision-freeness" notions an
 
 Strength order **HON < LEAK < MAL**: passing **MAL** implies **LEAK** implies **HON**.
 
-### 1.2 The two notions POLARIS targets
+### 1.2 The two notions VORLATH targets
 
 - **X-BIND-K-CT (key binds ciphertext).** If two decapsulation instances yield the **same
   K**, they must have used the **same ciphertext `ct`**. Failure = a *shared-K,
@@ -59,7 +59,7 @@ Strength order **HON < LEAK < MAL**: passing **MAL** implies **LEAK** implies **
 
 Each is read at all three levels: HON-BIND-K-CT, LEAK-BIND-K-CT, MAL-BIND-K-CT (and
 likewise for K-PK). The literature also defines combined notions (e.g. X-BIND-K,CT-PK and
-X-BIND-K,PK-CT) and reverse directions; **K-CT and K-PK are the two the POLARIS question
+X-BIND-K,PK-CT) and reverse directions; **K-CT and K-PK are the two the VORLATH question
 targets**, because they are exactly the notions bare ML-KEM provably fails at the MAL level
 and that protocol-level transcript binding is meant to restore.
 
@@ -140,21 +140,21 @@ hybrid — *even though its combiner deliberately does NOT hash the ML-KEM ciphe
 binding is supplied by hashing the **X25519 ephemeral `ct_X` and recipient `pk_X`** into the
 SHA3-256 combiner together with ML-KEM's own `H(ek)`-in-K. This is the model case: hashing
 `ct` and `pk` at the combiner / protocol layer **repairs the binding the bare KEM lacks** —
-exactly the lever POLARIS pulls, only POLARIS does it *more explicitly* by hashing the
+exactly the lever VORLATH pulls, only VORLATH does it *more explicitly* by hashing the
 ML-KEM `kem_ct` itself into the transcript.
 
 ---
 
 ## 3. How the Shield achieves protocol-level binding
 
-### 3.1 The construction (ground truth from `polaris_shield/shield.py`)
+### 3.1 The construction (ground truth from `vorlath_shield/shield.py`)
 
 The AEAD key is
 
 ```
 K = HKDF-SHA384( ikm  = lenframe(ss_classical) || lenframe(ss_pq),
-                 salt = "POLARIS-Shield-combiner/v2",
-                 info = "POLARIS-Shield/2 hybrid-kem combiner" || suite_id || pre_auth )
+                 salt = "VORLATH-Shield-combiner/v2",
+                 info = "VORLATH-Shield/2 hybrid-kem combiner" || suite_id || pre_auth )
 ```
 
 where `lenframe(s) = uint16_be(len(s)) || s`, and
@@ -306,7 +306,7 @@ layer the adversary reaches first*.
 8. NIST CSRC presentation, *"Misbinding KEMs"* (2025) — confirms the binding-notion frontier
    is active standards-track work feeding SP 800-227.
    <https://csrc.nist.gov/presentations/2025/misbinding-kems>
-9. POLARIS internal: [`FORMAL_COVERAGE.md`](FORMAL_COVERAGE.md) — the assumed idealizations
+9. VORLATH internal: [`FORMAL_COVERAGE.md`](FORMAL_COVERAGE.md) — the assumed idealizations
    (HKDF dual-PRF/extractor, ML-DSA EUF-CMA, downgrade-resistance and sender-authentication
    lemmas, stateless one-pass => replay out of scope) that scope this protocol-level claim.
 
