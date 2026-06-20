@@ -166,7 +166,8 @@ to the header fails GCM tag verification on open.
 ```
 ikm  = struct.pack(">H", len(ss_classical)) || ss_classical
      || struct.pack(">H", len(ss_pq))       || ss_pq
-info = _COMBINER_LABEL || bytes([suite.suite_id]) || pre_auth
+     [|| struct.pack(">H", len(ppk)) || ppk]                  # optional RFC 8784 PPK leg (FLAG_PPK)
+info = _COMBINER_LABEL || bytes([suite.suite_id]) || pre_auth [|| sender_kid]
 key  = HKDF(algorithm = suite.hkdf_hash(), length = 32,
             salt = _COMBINER_SALT, info = info).derive(ikm)
 ```
@@ -177,6 +178,15 @@ domain-separation label, the `suite_id` byte, and the full `pre_auth` transcript
 material is the **length-framed** concatenation of the classical ECDH secret and the post-quantum
 ML-KEM secret (SP 800-56C-shaped combiner — the u16 length prefixes make the concatenation injective
 so two different secret pairs can never collide into the same `ikm`).
+
+Two optional bindings extend this. An out-of-band **RFC 8784 PPK** (when `FLAG_PPK` is set) is
+appended as a third length-framed secret in the `ikm`, so the key holds even if **both** the classical
+and the ML-KEM legs are broken. And in **authenticated mode** (`FLAG_AUTHENTICATED`) the verified
+sender key-id `sender_kid` is appended to the `info`, **channel-binding** the sender identity into the
+AEAD key itself (HPKE RFC 9180 / TLS 1.3 style) so the key-derivation transcript and the signed
+transcript cannot diverge on who the sender is — the derived key, not only the ML-DSA signature,
+witnesses the sender. `FLAG_AUTHENTICATED` / `FLAG_PPK` (carried in `pre_auth`) disambiguate the
+present-vs-absent cases, so the concatenation stays unambiguous.
 
 ### 2.7 The suite_id-in-AAD-and-KDF downgrade binding
 

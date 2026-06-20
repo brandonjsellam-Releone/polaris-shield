@@ -258,7 +258,7 @@ def generate_signing_keys(suite_id: int = DEFAULT_SUITE_ID) -> tuple[bytes, byte
 
 # ----------------------------------------------------------------- combiner (SP 800-56C shaped)
 def _derive_key(suite: Suite, ss_classical: bytes, ss_pq: bytes, pre_auth: bytes,
-                ppk: bytes = b"") -> bytes:
+                ppk: bytes = b"", sender_kid: bytes = b"") -> bytes:
     """HKDF over length-framed (ss_classical || ss_pq [|| ppk]), bound to the full transcript.
 
     Length-framing makes the concatenation injective across suites; the transcript is
@@ -267,12 +267,18 @@ def _derive_key(suite: Suite, ss_classical: bytes, ss_pq: bytes, pre_auth: bytes
     as a THIRD length-framed secret, so the derived key still holds even if BOTH the
     classical and the ML-KEM legs are broken; its presence is also bound via FLAG_PPK in
     `pre_auth`, so an attacker cannot strip it without invalidating the transcript/AAD.
+
+    In authenticated mode the sender's key-id `sender_kid` is ALSO bound into the HKDF
+    FixedInfo (channel binding, HPKE RFC 9180 / TLS 1.3 style), so the derived AEAD key
+    itself witnesses the sender identity - not only the ML-DSA signature; the two transcripts
+    (signature and key) no longer diverge on sender identity. FLAG_AUTHENTICATED (carried in
+    `pre_auth`) disambiguates the empty (anonymous) case from the 32-byte (authenticated) one.
     """
     ikm = struct.pack(">H", len(ss_classical)) + ss_classical + \
         struct.pack(">H", len(ss_pq)) + ss_pq
     if ppk:
         ikm += struct.pack(">H", len(ppk)) + ppk
-    info = _COMBINER_LABEL + bytes([suite.suite_id]) + pre_auth
+    info = _COMBINER_LABEL + bytes([suite.suite_id]) + pre_auth + sender_kid
     return HKDF(algorithm=suite.hkdf_hash(), length=32, salt=_COMBINER_SALT,
                 info=info).derive(ikm)
 
@@ -308,6 +314,7 @@ def encrypt(plaintext: bytes, recipient_public_bundle: bytes,
     pre_auth = _pre_auth_transcript(suite_id, flags, recipient_key_id, eph_pub, kem_ct, nonce)
 
     sender_block = b""
+    sender_kid = b""
     if sender_signing_private is not None:
         if sender_signing_public is None:
             raise ValueError("sender_signing_public is required for authenticated mode")
@@ -321,7 +328,7 @@ def encrypt(plaintext: bytes, recipient_public_bundle: bytes,
               + _tlv(recipient_key_id) + _tlv(eph_pub) + _tlv(kem_ct)
               + _tlv(nonce) + _tlv(sender_block))
 
-    key = _derive_key(s, ss_classical, ss_pq, pre_auth, ppk or b"")
+    key = _derive_key(s, ss_classical, ss_pq, pre_auth, ppk or b"", sender_kid)
     sealed = AESGCM(key).encrypt(nonce, plaintext, header)   # ct||tag, AAD = header
     return header + struct.pack(">I", len(sealed)) + sealed
 
@@ -367,6 +374,7 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
 
     pre_auth = _pre_auth_transcript(suite_id, flags, recipient_key_id, eph_pub, kem_ct, nonce)
 
+    kdf_sender_kid = b""
     if flags & FLAG_AUTHENTICATED:
         sender_kid, b2 = _read_tlv(sender_block, 0)
         sender_pub, b3 = _read_tlv(sender_block, b2)
@@ -376,6 +384,7 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
             raise ValueError("sender key-id does not match the embedded sender key")
         if not _suite(ssuite_id).sig.verify(sender_pk, pre_auth + claimed_kid, signature, AUTH_CTX):
             raise ValueError("sender signature verification failed")
+        kdf_sender_kid = claimed_kid   # channel-bind the VERIFIED sender identity into the AEAD key
         if expected_sender_public is not None and \
                 sig_key_id(expected_sender_public) != claimed_kid:
             raise ValueError("authenticated sender is not the expected sender")
@@ -391,7 +400,7 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
 
     ss_classical = s.ecdh.exchange(s.ecdh.from_private(x_priv), eph_pub)
     ss_pq = s.kem.decaps(kem_dk, kem_ct)
-    key = _derive_key(s, ss_classical, ss_pq, pre_auth, effective_ppk)
+    key = _derive_key(s, ss_classical, ss_pq, pre_auth, effective_ppk, kdf_sender_kid)
     return AESGCM(key).decrypt(nonce, sealed, header)
 
 

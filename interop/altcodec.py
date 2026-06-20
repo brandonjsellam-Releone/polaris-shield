@@ -173,11 +173,13 @@ def _pre_auth_transcript(suite_id: int, flags: int, recipient_key_id: bytes,
 
 
 def _derive_key(suite: _Suite, ss_classical: bytes, ss_pq: bytes,
-                pre_auth: bytes) -> bytes:
-    # FORMAT.md §2.6(b): length-framed IKM, label||suite_id||pre_auth as FixedInfo.
+                pre_auth: bytes, sender_kid: bytes = b"") -> bytes:
+    # FORMAT.md §2.6(b): length-framed IKM, label||suite_id||pre_auth[||sender_kid] as FixedInfo.
+    # In authenticated mode the verified sender key-id is bound into the FixedInfo (channel
+    # binding), so the AEAD key witnesses the sender identity, not only the ML-DSA signature.
     ikm = (struct.pack(">H", len(ss_classical)) + ss_classical
            + struct.pack(">H", len(ss_pq)) + ss_pq)
-    info = _COMBINER_LABEL + bytes([suite.suite_id]) + pre_auth
+    info = _COMBINER_LABEL + bytes([suite.suite_id]) + pre_auth + sender_kid
     return HKDF(algorithm=suite.hkdf_hash(), length=32,
                 salt=_COMBINER_SALT, info=info).derive(ikm)
 
@@ -236,6 +238,7 @@ def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
                                     eph_pub, kem_ct, nonce)
 
     # --- authenticated sender block (FORMAT.md §3), verified BEFORE decapsulation ---
+    kdf_sender_kid = b""
     if flags & _FLAG_AUTHENTICATED:
         sender_kid, b2 = _read_tlv(sender_block, 0)
         sender_pub, b3 = _read_tlv(sender_block, b2)
@@ -248,6 +251,7 @@ def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
         ok = ssuite.sig.verify(sender_pk, pre_auth + claimed_kid, signature, _AUTH_CTX)
         if not ok:
             raise AltCodecError("sender signature verification failed")
+        kdf_sender_kid = claimed_kid   # channel-bind the verified sender identity into the AEAD key
         if (expected_sender_public is not None
                 and _sig_key_id(expected_sender_public) != claimed_kid):
             raise AltCodecError("authenticated sender is not the expected sender")
@@ -257,7 +261,7 @@ def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
     # --- hybrid combine + open (FORMAT.md §2.6 / §8.1) ---
     ss_classical = s.ecdh.exchange(x_priv, eph_pub)
     ss_pq = s.kem.decaps(kem_dk, kem_ct)
-    key = _derive_key(s, ss_classical, ss_pq, pre_auth)
+    key = _derive_key(s, ss_classical, ss_pq, pre_auth, kdf_sender_kid)
     try:
         return AESGCM(key).decrypt(nonce, sealed, header)
     except InvalidTag as exc:  # AEAD tag failure -> uniform AltCodecError (cause preserved)
