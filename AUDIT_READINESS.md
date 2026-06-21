@@ -38,6 +38,8 @@ libraries beyond the cross-implementation differential below; anything claiming 
 | **Inventory** | CycloneDX `sbom/` + `cbom/` | dependency + crypto bill of materials |
 | **Self-audit** | `VERIFICATION_GAP_MAP.md` | we already ranked our own remaining seams |
 | **Crypto frontier** | `BINDING.md` (X-BIND / RFC 9935) | KEM-binding analysis + the transcript-binding repair |
+| **Implementation code review** | adversarial multi-agent read of `shield.py` + the CLI / dual-sig / LMS-signing / release-bundle (2026-06-21) | the actual Python read for bugs (not just proved/tested) — found **sound**; 2 defense-in-depth fixes shipped (AEAD reject normalized to `ValueError`; canonical `sender_block` parse) |
+| **Standards conformance** | `STANDARDS_ALIGNMENT.md` | crosswalk: the combiner **instantiates** `Concat-then-KDF` (CFRG `draft-irtf-cfrg-hybrid-kems-11`) / SP 800-56C §4.1 (NIST SP 800-227 final), with the draft's recommended pk/ct binding |
 
 ## 3. What we want a design review to cover (RFP-style scope)
 
@@ -56,10 +58,12 @@ A reviewer should target these specific questions:
 ## 4. Attack surface — where to push first
 
 Already published, ranked, in [`VERIFICATION_GAP_MAP.md`](VERIFICATION_GAP_MAP.md). The honest order:
-(a) primitive lineage — *largely closed* by `cross_impl.py`; (b) the prose hybrid-KEM IND-CCA
-composition (a mechanized EasyCrypt/CryptoVerif theorem would close it — in progress); (c) no
-model-to-bytes link (provers do not run the Python); (d) side channels beyond timing; (e) not FIPS
-140-3 validated. A reviewer who breaks any of these has a real finding — report per
+(a) primitive lineage — *largely closed* by `cross_impl.py`; (b) the hybrid-KEM IND-CCA composition —
+*now mechanized on both legs* in CryptoVerif (`shield_combiner_indcca.cv` carries `Adv_PQ_CCA`,
+`shield_combiner_dh.cv` carries `Adv_GDH`; FORMAL_COVERAGE goal 9); (c) the model-to-bytes link (provers
+verify the model, not the Python) — *partially closed* by the 2026-06-21 adversarial implementation code
+review of `shield.py` (found sound; 2 defense-in-depth fixes), with a code-extracted model the remaining
+gold standard; (d) side channels beyond timing; (e) not FIPS 140-3 validated. A reviewer who breaks any of these has a real finding — report per
 `SECURITY-DISCLOSURE.md`.
 
 ## 5. CAVP / ACVP self-test status (de-risks the lab engagement)
