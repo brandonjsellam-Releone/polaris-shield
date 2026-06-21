@@ -35,7 +35,7 @@ corollary (`shield_kemdem.cv`). The CI `prove-cryptoverif` job installs it via o
 [`../SECURITY_ARGUMENT.md`](../SECURITY_ARGUMENT.md).
 
 ```
-make prove-all        # all three layers locally (needs verifpal + tamarin + cryptoverif)
+make prove-all        # all four lineages locally (needs verifpal + tamarin + proverif + cryptoverif)
 verifpal verify tech/formal/shield.vp
 tamarin-prover --prove tech/formal/shield.spthy         # all 11 lemmas: verified (~11 s)
 cryptoverif -in oracles tech/formal/shield_combiner.cv  # computational: All queries proved
@@ -120,7 +120,7 @@ Each query maps to a `THREAT_MODEL.md` property, the `shield.py` code that enfor
 
 ## Honest summary
 
-Two independent tool lineages — Verifpal (bounded) and Tamarin (unbounded) — verify the handshake's
-goals clean, and the replay non-result reproduces the documented caveat. The proof is exactly as
+Three independent tool lineages — Verifpal (bounded), Tamarin and ProVerif (unbounded) — verify the
+handshake's goals clean, and the replay non-result reproduces the documented caveat. The proof is exactly as
 strong as a symbolic model under idealized primitives — and no stronger. That scope is stated
 above precisely so the result is a credential, not theater.

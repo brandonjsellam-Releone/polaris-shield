@@ -16,7 +16,7 @@ import json; print(json.load(open("release/RELEASE_MANIFEST.json"))["bundle_dige
 PY
 ```
 
-The `bundle_digest` is a SHA-256 Merkle-style root over the source + all three proof models +
+The `bundle_digest` is a SHA-256 Merkle-style root over the source + all the proof models +
 the ACVP/KAT vectors + the interop corpus. If your digest matches the signed one (see
 `release/README.md` for the cosign verification command), you are re-running the exact
 artifacts that were tested and proved — not a lookalike.
