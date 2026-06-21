@@ -32,9 +32,9 @@ What this establishes: primitives behave (incl. the **ACVP implicit-rejection br
 ek/dk key-checks), the wire format round-trips, and the independent `interop/altcodec.py`
 decoder agrees byte-for-byte on every positive and rejects every negative at its expected layer.
 
-## 2. Three machine-checked proofs (hermetic, pinned provers)
+## 2. Four machine-checked proofs (hermetic, pinned provers)
 
-The two **symbolic** provers (Verifpal, Tamarin) are pinned by SHA-256 in the hermetic image, so
+Two of the three **symbolic** provers (Verifpal, Tamarin) are pinned by SHA-256 in the hermetic image, so
 you do not have to install them by hand. That image runs **both symbolic lineages plus the
 497-test suite**, exiting non-zero on any failure:
 
@@ -43,11 +43,12 @@ docker build -t vorlath-shield-verify -f Dockerfile .
 docker run --rm vorlath-shield-verify        # Verifpal + Tamarin + 497 tests; non-zero on any failure
 ```
 
-The CryptoVerif **computational** proof is *not* in that image (it needs an OCaml/opam toolchain);
-run it with `make prove-cryptoverif` or the native command below. It is independently gated in CI
-(`.github/workflows/formal.yml`, the `prove-cryptoverif` job). The **ProVerif fourth lineage is a
-DRAFT** pending its own run (`formal/proverif.Dockerfile`); it is **not** counted among the verified
-proofs — see [`VERIFICATION_GAP_MAP.md`](VERIFICATION_GAP_MAP.md).
+The **ProVerif** (unbounded symbolic, 4th lineage) and **CryptoVerif** (computational) proofs are *not*
+in that image (they need OCaml/opam toolchains); run them with `make prove-proverif` and
+`make prove-cryptoverif` (or the native commands below). Both are independently gated in CI
+(`.github/workflows/formal.yml`, the `prove-proverif` and `prove-cryptoverif` jobs). **ProVerif is now a
+verified fourth lineage** (`formal/shield.pv` + `formal/shield_ppk.pv`, all queries hold) — see
+[`FORMAL_COVERAGE.md`](FORMAL_COVERAGE.md).
 
 Or natively, if you already have the provers on PATH (versions in `formal/README.md`):
 
