@@ -33,9 +33,21 @@ def _scrypt(passphrase: str, salt: bytes) -> bytes:
 
 
 # ----------------------------------------------------------------- file + key I/O
-def _w(path, data: bytes):
-    with open(path, "w", encoding="ascii") as f:
-        f.write(base64.b64encode(data).decode())
+def _w(path, data: bytes, private: bool = False):
+    # Private-key files are created owner-only (0600) so the secret is never world-readable,
+    # even before any bytes are written. Public material (pubkeys, ciphertext, signatures) uses
+    # the default. On POSIX this is enforced; on Windows it is a best-effort no-op (ACL-inherited).
+    if private:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="ascii") as f:
+            f.write(base64.b64encode(data).decode())
+        try:
+            os.chmod(path, 0o600)   # tighten even if the file pre-existed with looser perms
+        except OSError:
+            pass
+    else:
+        with open(path, "w", encoding="ascii") as f:
+            f.write(base64.b64encode(data).decode())
 
 
 def _r(path) -> bytes:
@@ -71,8 +83,8 @@ def cmd_keygen(a):
     spk, ssk = shield.generate_signing_keys(a.suite)
     if a.passphrase:
         priv, ssk = _wrap_private(priv, a.passphrase), _wrap_private(ssk, a.passphrase)
-    _w(a.prefix + ".kem.pub", pub); _w(a.prefix + ".kem.key", priv)
-    _w(a.prefix + ".sig.pub", spk); _w(a.prefix + ".sig.key", ssk)
+    _w(a.prefix + ".kem.pub", pub); _w(a.prefix + ".kem.key", priv, private=True)
+    _w(a.prefix + ".sig.pub", spk); _w(a.prefix + ".sig.key", ssk, private=True)
     s = shield.SUITES[a.suite]
     kid = shield.kem_key_id(pub).hex()
     print(f"suite 0x{a.suite:02x}  {s.name}")

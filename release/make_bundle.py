@@ -2,7 +2,7 @@
 
 "CI-gated" is not the same as "externally reproducible." This script produces a
 deterministic, signable manifest over every assurance-critical artifact — the source,
-all three formal-proof models, the ACVP/KAT vectors, the interop corpus, the
+all four formal-proof lineages (Verifpal/Tamarin/ProVerif/CryptoVerif), the ACVP/KAT vectors, the interop corpus, the
 side-channel harness, and the honest-posture docs — so a third party can fetch the
 exact bytes that were proved/tested and confirm they match, then re-run the proofs.
 
@@ -40,7 +40,7 @@ INCLUDE = [
     "SECURITY-DISCLOSURE.md", "CONSTANT_TIME.md", "README.md", "REPRODUCE.md",
     "FORMAL_COVERAGE.md", "STANDARDS_POSITION.md",
     "VERIFICATION_GAP_MAP.md", "BINDING.md", "GOV_ALIGNMENT.md", "CNSA_MIGRATION.md",
-    "AUDIT_READINESS.md",
+    "AUDIT_READINESS.md", "STANDARDS_ALIGNMENT.md",
     "requirements.txt", "pyproject.toml", "Dockerfile",
     "test_*.py",
 ]
