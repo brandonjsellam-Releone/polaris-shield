@@ -35,7 +35,7 @@ decoder agrees byte-for-byte on every positive and rejects every negative at its
 ## 2. Four machine-checked proofs (hermetic, pinned provers)
 
 Two of the three **symbolic** provers (Verifpal, Tamarin) are pinned by SHA-256 in the hermetic image, so
-you do not have to install them by hand. That image runs **both symbolic lineages plus the
+you do not have to install them by hand. That image runs **those two symbolic lineages plus the
 497-test suite**, exiting non-zero on any failure:
 
 ```bash

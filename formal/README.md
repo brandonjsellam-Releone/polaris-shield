@@ -3,7 +3,7 @@
 Machine-checked **symbolic** security proofs of the Shield's authenticated hybrid handshake,
 under an active **Dolev-Yao** attacker — the exact adversary `THREAT_MODEL.md` names. Every
 prose property in the threat-model table is here a query/lemma a checker either **proves** or
-**breaks**, across **two independent tool lineages** (Verifpal, bounded; Tamarin, unbounded), and
+**breaks**, across **three independent tool lineages** (Verifpal, bounded; Tamarin and ProVerif, unbounded), and
 the proofs run in CI (the dedicated `formal.yml` workflow) whenever the handshake model or its
 implementation changes.
 

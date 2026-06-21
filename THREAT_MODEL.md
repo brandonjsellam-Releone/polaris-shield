@@ -29,9 +29,9 @@ coercion / key escrow.
 
 ## Formal verification
 
-The properties above are **machine-checked**, not just asserted, across **two independent tool
-lineages** — [Verifpal](https://verifpal.com) (bounded) and [Tamarin](https://tamarin-prover.com)
-(unbounded sessions), both symbolic (Dolev-Yao). The model of the authenticated hybrid handshake in
+The properties above are **machine-checked**, not just asserted, across **three independent tool
+lineages** — [Verifpal](https://verifpal.com) (bounded), [Tamarin](https://tamarin-prover.com) and ProVerif
+(unbounded sessions), all symbolic (Dolev-Yao). The model of the authenticated hybrid handshake in
 [`formal/`](formal/) proves that plaintext stays confidential even when an active attacker breaks the
 **classical** leg (`formal/shield.vp`, the CRQC / harvest-now-decrypt-later case) **or** the
 **ML-KEM** leg (`formal/shield_pq.vp`) — but not both — and that a forged or tampered envelope is

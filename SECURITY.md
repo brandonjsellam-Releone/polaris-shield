@@ -12,8 +12,8 @@ built to be *correct and standards-faithful*, and it is deliberately honest abou
 - The default suite (0x02) uses the **CNSA 2.0 algorithm set**: ML-KEM-1024 + ML-DSA-87 +
   AES-256 + SHA-384, hybridised with X448.
 - A construction whose **handshake security goals are machine-checked**: a symbolic (Dolev-Yao)
-  model in [`formal/`](formal/) proves, across **two independent tool lineages — Verifpal (bounded)
-  and Tamarin (unbounded), both re-run in CI** — confidentiality (surviving a CRQC that breaks
+  model in [`formal/`](formal/) proves, across **three independent tool lineages — Verifpal (bounded),
+  Tamarin and ProVerif (unbounded), all re-run in CI** — confidentiality (surviving a CRQC that breaks
   *either single* leg), sender authenticity, transcript binding and downgrade resistance — and
   reproduces the replay non-property as a verified non-result. Symbolic, under idealized primitives;
   see [`formal/README.md`](formal/README.md).
