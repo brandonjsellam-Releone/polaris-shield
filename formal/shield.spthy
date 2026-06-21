@@ -150,6 +150,18 @@ lemma hybrid_secrecy:
       & not (Ex #c #p. RevealClassical(B) @ c & RevealPQ(B) @ p)
       ==> not (Ex #k. K(m) @ k)"
 
+// FORWARD SECRECY w.r.t. the SENDER's long-term key: a past message stays secret
+// even after the sender's ML-DSA SIGNING key is compromised - it never keyed the
+// channel (the sender contributes only EPHEMERAL secrets ~e, ~sspq). NOTE: this is
+// NOT forward secrecy w.r.t. the RECIPIENT's long-term hybrid key; that is a static-
+// recipient-key PKE (HPKE base-mode style) and is OUT OF SCOPE BY DESIGN.
+lemma forward_secrecy_under_sender_key_reveal:
+    "All A B m #i #r.
+        SecretMsg(A, B, m) @ i
+      & RevealSign(A) @ r
+      & not (Ex #c #p. RevealClassical(B) @ c & RevealPQ(B) @ p)
+      ==> not (Ex #k. K(m) @ k)"
+
 // Corollary 1 - classical leg fully broken (CRQC), pq intact: still secret.
 lemma secrecy_under_classical_break:
     "All A B m #i.

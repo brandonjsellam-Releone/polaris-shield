@@ -78,7 +78,7 @@ jobs:
             echo "$f verified lemmas: $n"; total=$((total + n))
           done
           echo "total verified lemmas: $total"
-          if [ "$total" -lt 23 ]; then echo "::error::expected >=23 verified lemmas (11 + 12), got $total"; exit 1; fi
+          if [ "$total" -lt 24 ]; then echo "::error::expected >=24 verified lemmas (12 + 12), got $total"; exit 1; fi
           echo "All Tamarin lemmas verified across shield.spthy + shield_ppk.spthy (unbounded)."
 
   prove-cryptoverif:

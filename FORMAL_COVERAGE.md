@@ -35,6 +35,7 @@ each prover artifact to a standard security goal. It consolidates the per-tool t
 | 8 | **Non-vacuity controls** — honest runs exist; each protection provably breaks once its safeguard is removed | Tamarin | `executable`, `sanity_both_legs_broken_leaks`, `sanity_sign_reveal_allows_forgery`, `sanity_classical_break_run_exists`, `sanity_pq_break_run_exists` | exists-trace |
 | 9 | **Hybrid-KEM IND-CCA composition** — "each component leg secure => the combined hybrid KEM is IND-CCA", mechanized on **both** legs | CryptoVerif | `shield_combiner_indcca.cv` (bound carries `Adv_PQ_CCA` = the ML-KEM leg) + `shield_combiner_dh.cv` (bound carries `Adv_GDH` = the classical X25519/X448 leg) | computational |
 | 10 | **Sender-identity channel binding** — the *verified* `sender_kid` is folded into the KDF `info`, so the derived AES-256-GCM key is bound to the sender's identity (not only attested by the signature) | all four lineages | KDF transcript `‖ sender_kid` in `shield.spthy` / `shield.pv` / `shield.vp`+`shield_pq.vp`; abstract transcript in `shield_combiner.cv` | all-traces / query / computational |
+| 11 | **Forward secrecy w.r.t. the sender's long-term key** — a past message stays secret even after the sender's ML-DSA signing key is compromised (it never keys the channel; the sender contributes only ephemeral secrets) | Tamarin | `forward_secrecy_under_sender_key_reveal` | all-traces |
 
 All 11 Tamarin lemmas auto-prove (~11 s, 1.12.0 / Maude 3.4); **ProVerif independently re-proves the
 unbounded goals (rows 1-6) as a fourth lineage** (`shield.pv`, all queries hold); both Verifpal models
@@ -84,6 +85,9 @@ above), ML-KEM's small decryption error / implicit rejection, curve point-valida
 
 ## Explicitly out of scope (and where that is stated)
 
+- **Forward secrecy w.r.t. the RECIPIENT's long-term hybrid key** — none by design: this is a one-pass,
+  static-recipient-key PKE (HPKE base-mode style); if the recipient's key later leaks, past ciphertexts
+  to it are decryptable. FS w.r.t. the SENDER's long-term key IS proved (goal 11).
 - Side channels beyond timing (power / EM / cache / fault) — `SECURITY.md`, `CONSTANT_TIME.md`.
 - FIPS 140-3 (CAVP/CMVP) validation — `SECURITY.md` ("CNSA 2.0" = algorithm set, never a cert claim).
 - Wire-encoding length-framing fidelity — carried by ACVP + the 497-test suite + `interop/` + `FORMAT.md`.
