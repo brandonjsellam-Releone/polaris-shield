@@ -242,7 +242,9 @@ def open_envelope(envelope: bytes, recipient_private_bundle: bytes,
     if flags & _FLAG_AUTHENTICATED:
         sender_kid, b2 = _read_tlv(sender_block, 0)
         sender_pub, b3 = _read_tlv(sender_block, b2)
-        signature, _ = _read_tlv(sender_block, b3)
+        signature, b4 = _read_tlv(sender_block, b3)
+        if b4 != len(sender_block):
+            raise AltCodecError("sender_block has trailing bytes (non-canonical encoding)")
         ssuite_id, claimed_kid, sig_parts = _parse_key(sender_pub, _ROLE_SIG_PUB)
         (sender_pk,) = sig_parts
         if sender_kid != claimed_kid:

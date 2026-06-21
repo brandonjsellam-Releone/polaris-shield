@@ -41,6 +41,7 @@ from typing import Any
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.x448 import X448PrivateKey, X448PublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dilithium_py.ml_dsa import ML_DSA_65, ML_DSA_87
@@ -378,7 +379,9 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
     if flags & FLAG_AUTHENTICATED:
         sender_kid, b2 = _read_tlv(sender_block, 0)
         sender_pub, b3 = _read_tlv(sender_block, b2)
-        signature, _ = _read_tlv(sender_block, b3)
+        signature, b4 = _read_tlv(sender_block, b3)
+        if b4 != len(sender_block):
+            raise ValueError("sender_block has trailing bytes (non-canonical encoding)")
         ssuite_id, claimed_kid, (sender_pk,) = _parse_key(sender_pub, _ROLE_SIG_PUB)
         if sender_kid != claimed_kid:
             raise ValueError("sender key-id does not match the embedded sender key")
@@ -401,7 +404,10 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
     ss_classical = s.ecdh.exchange(s.ecdh.from_private(x_priv), eph_pub)
     ss_pq = s.kem.decaps(kem_dk, kem_ct)
     key = _derive_key(s, ss_classical, ss_pq, pre_auth, effective_ppk, kdf_sender_kid)
-    return AESGCM(key).decrypt(nonce, sealed, header)
+    try:
+        return AESGCM(key).decrypt(nonce, sealed, header)
+    except InvalidTag as e:
+        raise ValueError("AEAD open failed (tamper or wrong key)") from e
 
 
 # convenience wrappers (explicit names for the authenticated handshake)
@@ -550,5 +556,8 @@ def open_stream(envelope: bytes, recipient_private_bundle: bytes) -> bytes:
     for idx, blob in enumerate(blobs):
         final = 1 if idx == last else 0
         ctr = struct.pack(">I", idx) + bytes([final])
-        out += aead.decrypt(base_nonce + ctr, blob, header + ctr)   # raises on any mismatch
+        try:
+            out += aead.decrypt(base_nonce + ctr, blob, header + ctr)   # raises on any mismatch
+        except InvalidTag as e:
+            raise ValueError("stream chunk AEAD open failed (tamper or wrong key)") from e
     return bytes(out)

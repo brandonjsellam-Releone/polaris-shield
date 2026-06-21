@@ -37,7 +37,7 @@ def test_tamper_is_detected(suite):
     pub, priv = shield.generate_recipient_keys(suite)
     env = bytearray(shield.encrypt(b"hello world", pub))
     env[-1] ^= 0x01
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):   # every reject path raises ValueError per the decrypt() contract
         shield.decrypt(bytes(env), priv)
 
 
@@ -251,7 +251,7 @@ def test_stream_tamper_is_rejected():
     pub, priv = shield.generate_recipient_keys()
     env = bytearray(shield.seal_stream(os.urandom(4096 * 4), pub, chunk_size=4096))
     env[-1] ^= 0x01
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):   # tampered stream rejects as ValueError per the open_stream() contract
         shield.open_stream(bytes(env), priv)
 
 
