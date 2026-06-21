@@ -270,6 +270,13 @@ layer the adversary reaches first*.
   independent of the protocol binding. Even then, **MAL-BIND-K-PK remains a protocol-layer
   responsibility** — which is exactly what the Shield's transcript + signed `pre_auth`
   supply.
+- **Salt-side "dual-PRF" pk-binding was evaluated and declined (2026-06-21).** Moving
+  `recipient_key_id` into the HKDF-Extract *salt* (`_COMBINER_SALT ‖ recipient_key_id`, X-Wing /
+  split-PRF style) was assessed by a deliberately skeptical council round and judged **redundant**
+  with the `info` / AAD / signed-`pre_auth` binding documented above (§3), and **net-negative** for
+  the SP 800-56C extract analysis (a per-recipient salt correlates the salt with the IKM). The
+  binding stays where this page documents it — the fixed salt is retained. See
+  [`VERIFICATION_GAP_MAP.md`](VERIFICATION_GAP_MAP.md) "Council-recommended hardening".
 
 ---
 

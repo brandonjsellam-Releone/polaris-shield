@@ -128,7 +128,7 @@ This page is only credible if you can act on it. Each weak seam has a falsificat
 - general: `REPRODUCE.md` re-runs every green check on your own machine. If any does not reproduce,
   that is the most valuable finding of all - report it per `SECURITY-DISCLOSURE.md`.
 
-## Council-recommended hardening (2026-06-20; non-breaking; not yet implemented)
+## Council-recommended hardening (2026-06-20; updated 2026-06-21 — dual-PRF item evaluated + declined)
 
 A multi-model adversarial review (two rounds; **7 of 8 apex models reached**) found **no new breaking
 flaw**: every higher-severity flag collapsed when checked against the code - e.g. a flagged GCM nonce-reuse
@@ -143,13 +143,33 @@ combiner and would require re-running the four proof lineages):
 - **Explicit key-confirmation.** Add a key-confirmation tag over the derived session key so the recipient
   proves key possession before use - fully closing residual KCI rather than leaning on the transcript /
   AEAD binding. A protocol addition (new wire field + re-proof).
-- **Dual-PRF public-key binding.** Fold both KEM public keys directly into the combiner IKM (X-Wing /
-  split-PRF style) so the derived key binds the public keys independently of the `recipient_key_id` / AAD
-  transcript binding, for defense-in-depth. A combiner-IKM change (re-proof + new vectors).
+- **Dual-PRF public-key binding — EVALUATED 2026-06-21, DECLINED (kept as a documented decision).** The
+  proposal: fold the recipient public key into the combiner more directly — into the IKM, or (the variant
+  assessed in depth) into the HKDF-Extract **salt** as `_COMBINER_SALT ‖ recipient_key_id`, X-Wing / split-PRF
+  style. A second, deliberately **skeptical** council round (Grok, DeepSeek, Mistral; Gemini unreachable, 503)
+  concurred it is **marginal churn not worth a wire-format break**, for three concrete reasons:
+  1. **Redundant.** `recipient_key_id` (= H(recipient public keys)) and `kem_ct` are **already** bound into
+     the HKDF `info` (Expand) **and** the AEAD AAD **and** the signed `pre_auth`. That already supplies the
+     X-BIND-K-CT / X-BIND-K-PK / MAL-binding the change targets — see [`BINDING.md`](BINDING.md) §3 and the
+     NV-1..NV-7 must-reject corpus, plus the `test_authenticated_recipient_binding` /
+     `test_hybrid_binds_the_pq_ciphertext` / `test_wrong_recipient_never_decrypts` tests. Binding the same
+     value one step earlier (Extract) closes no demonstrated gap (DeepSeek, Grok).
+  2. **Net-negative for the proof.** A per-recipient salt would **correlate the Extract salt with the IKM**
+     (both derive from the recipient key), muddying the clean SP 800-56C / Krawczyk extract-then-expand
+     analysis (which keeps the salt independent of the IKM) for **no concrete gain** (DeepSeek).
+  3. **"X-Wing-style" does not mean "pk in the HKDF salt."** X-Wing supplies its MAL-binding with a single
+     SHAKE-256 call and **no HKDF** — and, per [`BINDING.md`](BINDING.md) §2.5, *without even hashing the
+     ML-KEM ciphertext*; the Shield already hashes `kem_ct` itself into the transcript, so it is, if anything,
+     **more** explicit than X-Wing at the location that matters.
+  **Decision: keep the fixed salt; the existing transcript / AAD / signed-`pre_auth` binding is the chosen,
+  sufficient location.** On record so a reviewer's "why not bind `pk` into the combiner like X-Wing?" has a
+  reasoned, council-checked answer rather than silence.
 
-These are improvements, **not** fixes: the current binding (`recipient_key_id` = H(public keys) carried in
-the transcript as HKDF `info`, plus the full header as AEAD AAD) was judged sound. They are listed so a
-reviewer sees the strongest available hardening, not because anything is broken.
+Key-confirmation remains honest future work; the dual-PRF binding was **evaluated in depth and declined**
+(2026-06-21, above). These are improvements, **not** fixes: the current binding (`recipient_key_id` =
+H(public keys) carried in the transcript as HKDF `info`, plus the full header as AEAD AAD) was judged sound.
+They are listed so a reviewer sees the strongest available hardening — and the reasoning behind what was
+deliberately **not** adopted — not because anything is broken.
 
 *This document is maintained as an honest liability. When a gap is closed (e.g. a second primitive
 lineage lands), its row moves from "residual risk" to "closed", with the closing artifact named -
