@@ -57,7 +57,7 @@ re-proved in the with-PPK config. The PPK leg is now proved in EVERY lineage —
 
 - The **proofs** (Verifpal, Tamarin, ProVerif, CryptoVerif - four independent machine-checked
   lineages) reason about **models**.
-- The **tests** (497-suite, ACVP, interop, **cross-impl differential**, dudect) exercise the **code**.
+- The **tests** (502-suite, ACVP, interop, **cross-impl differential**, dudect) exercise the **code**.
 - The bridge between a model and the code is **human-authored faithfulness** - the models were
   written to mirror `vorlath_shield/shield.py` and `FORMAT.md`. **No prover runs the actual
   Python.** A divergence ("the model says X, the code does Y") is not automatically caught. That

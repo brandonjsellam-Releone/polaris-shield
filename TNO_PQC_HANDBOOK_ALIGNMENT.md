@@ -88,10 +88,13 @@ an EC signature. Stated plainly so a reviewer can weigh it — an AI-council rev
   for hybrids), so it is not unconditionally "best".
 
 Net: the Shield meets footnote 2's *intent* (signature defense-in-depth against a single-family break)
-on a **post-quantum** axis, at the cost of the classical-maturity axis the EC leg provides. The
-dual-sign interface can carry an EC leg, so a peer that wants the Handbook's literal ML-DSA+EdDSA — or
-the full triple — can have it. We flag the deviation **with its real cost** so the choice is auditable,
-not hidden.
+on a **post-quantum** axis, at the cost of the classical-maturity axis the EC leg provides. And it is
+no longer either/or: the Shield now ships **`triple_sign` / `triple_verify`** (ML-DSA + SLH-DSA +
+**EdDSA** — Ed25519 or Ed448; **all three legs required**, fail-closed) in
+[`vorlath_shield/highassurance.py`](vorlath_shield/highassurance.py). So a peer that wants the
+Handbook's literal ML-DSA+EdDSA hybrid — or the strictly-strongest ML-DSA+SLH-DSA+EC triple — **has it
+directly**, not in principle. We flag the dual-only default and its real cost so the choice is
+auditable, not hidden.
 
 ## Net
 

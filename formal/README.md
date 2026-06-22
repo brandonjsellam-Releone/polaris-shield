@@ -7,7 +7,7 @@ prose property in the threat-model table is here a query/lemma a checker either 
 the proofs run in CI (the dedicated `formal.yml` workflow) whenever the handshake model or its
 implementation changes.
 
-> **What this adds.** ACVP + the 497-test suite + hypothesis fuzzing show the *primitives* are
+> **What this adds.** ACVP + the 502-test suite + hypothesis fuzzing show the *primitives* are
 > correct and the *implementation* behaves on sampled inputs. This layer raises the assurance
 > *ceiling*: it proves the **protocol design** meets its goals against an unbounded active
 > attacker, not just on examples. *Our security goals are not asserted — they are checked by a
@@ -101,7 +101,7 @@ Each query maps to a `THREAT_MODEL.md` property, the `shield.py` code that enfor
   underlying primitive is outside the model (the hybrid is the hedge *against* one such break,
   which is exactly what `shield.vp`/`shield_pq.vp` quantify).
 - **Out of scope:** constant-time / side-channel / timing behaviour, FIPS 140-3 validation,
-  and the wire-encoding length-framing fidelity (the codec is covered by ACVP + the 497-test
+  and the wire-encoding length-framing fidelity (the codec is covered by ACVP + the 502-test
   suite + the `interop/` corpus + `FORMAT.md`, not here). See `SECURITY.md`.
 - **What "reference implementation" still means.** A verified design does **not** make this a
   validated module. The Shield remains a reference implementation; this proof concerns the

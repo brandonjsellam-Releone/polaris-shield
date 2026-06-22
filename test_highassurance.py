@@ -76,3 +76,55 @@ def test_dual_verify_rejects_single_leg_tamper():
     dsig = bytearray(ha.dual_sign(mpriv, hpriv, b"m"))
     dsig[-1] ^= 0x01
     assert ha.dual_verify(mpub, hpub, b"m", bytes(dsig)) is False
+
+
+# ---------------------------------------------------------------- triple (ML-DSA + SLH-DSA + EdDSA)
+@pytest.mark.parametrize("ecid,name", [(0x01, "Ed25519"), (0x02, "Ed448")])
+def test_ec_roundtrip(ecid, name):
+    pub, priv = ha.generate_ec_keys(ecid)
+    assert name in ha.ec_param_name(pub)
+    sig = ha.ec_sign(priv, b"root identity")
+    assert ha.ec_verify(pub, b"root identity", sig)
+    assert not ha.ec_verify(pub, b"tampered", sig)
+    other_pub, _ = ha.generate_ec_keys(ecid)
+    assert not ha.ec_verify(other_pub, b"root identity", sig)
+
+
+def test_triple_signature_requires_all_three():
+    # The strongest hedge: a forgery must break ALL of lattice + hash-based + classical.
+    mpub, mpriv = shield.generate_signing_keys()          # ML-DSA (lattice)
+    hpub, hpriv = ha.generate_high_assurance_keys(FAST)   # SLH-DSA (hash-based)
+    epub, epriv = ha.generate_ec_keys(0x01)               # Ed25519 (classical)
+    msg = b"long-lived root of trust"
+    tsig = ha.triple_sign(mpriv, hpriv, epriv, msg)
+    assert ha.triple_verify(mpub, hpub, epub, msg, tsig)
+    assert not ha.triple_verify(mpub, hpub, epub, b"tampered", tsig)
+    # a wrong public key on ANY single leg must fail the whole signature
+    wmpub, _ = shield.generate_signing_keys()
+    assert not ha.triple_verify(wmpub, hpub, epub, msg, tsig)
+    whpub, _ = ha.generate_high_assurance_keys(FAST)
+    assert not ha.triple_verify(mpub, whpub, epub, msg, tsig)
+    wepub, _ = ha.generate_ec_keys(0x01)
+    assert not ha.triple_verify(mpub, hpub, wepub, msg, tsig)
+
+
+def test_triple_verify_rejects_malformed_blobs():
+    # triple_verify must return False (never crash) on attacker-supplied garbage. Fast: no signing.
+    mpub, _ = shield.generate_signing_keys()
+    hpub, _ = ha.generate_high_assurance_keys(FAST)
+    epub, _ = ha.generate_ec_keys(0x01)
+    for bad in [b"", b"PLTR", b"XXXX",
+                b"PLTR" + b"\xff\xff\xff\xff" + b"\x00" * 4,                       # lying inner length
+                b"PLTR" + (0).to_bytes(4, "big") + (0).to_bytes(4, "big") + b"\xff\xff\xff\xff",
+                b"PLTR" + (0).to_bytes(4, "big") * 3 + b"trailing"]:               # canonical: no trailing
+        assert ha.triple_verify(mpub, hpub, epub, b"m", bad) is False
+
+
+def test_triple_verify_rejects_single_leg_tamper():
+    # Flipping one byte of the (EdDSA) leg must fail the whole triple signature.
+    mpub, mpriv = shield.generate_signing_keys()
+    hpub, hpriv = ha.generate_high_assurance_keys(FAST)
+    epub, epriv = ha.generate_ec_keys(0x01)
+    tsig = bytearray(ha.triple_sign(mpriv, hpriv, epriv, b"m"))
+    tsig[-1] ^= 0x01
+    assert ha.triple_verify(mpub, hpub, epub, b"m", bytes(tsig)) is False

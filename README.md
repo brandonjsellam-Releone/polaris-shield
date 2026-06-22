@@ -1,9 +1,5 @@
 # VORLATH Shield v2 — post-quantum hybrid security (reference)
 
-[![CI](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/shield-ci.yml/badge.svg)](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/shield-ci.yml)
-[![formal verification](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/formal.yml/badge.svg)](https://github.com/brandonjsellam-Releone/vorlath-shield/actions/workflows/formal.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-
 The **VORLATH Shield** is the real, runnable form of the VORLATH **L9 layer**
 (a "post-quantum root of trust" in the **cryptographic** sense — the foundational software PQC
 layer; **not** a hardware root of trust, and providing no TPM / secure-element / measured-boot
@@ -52,12 +48,13 @@ lineages already establish). Hybrid `0x02` stays the default; `0x03` is opt-in.
 ## Install
 
 ```bash
-pip install -e .[dev]      # or: pip install -r tech/requirements.txt
+pip install -e tech/.[dev]      # or: pip install -r tech/requirements.txt
 ```
 
 ## Use
 
 ```bash
+cd tech
 python -m vorlath_shield demo                                     # live walkthrough (apex suite)
 python -m vorlath_shield keygen  --prefix alice [--suite 2] [--passphrase pw]
 python -m vorlath_shield encrypt --to alice.kem.pub --in secret.txt --out secret.trsh \
@@ -67,7 +64,7 @@ python -m vorlath_shield decrypt --key alice.kem.key --in secret.trsh --out out.
 python -m vorlath_shield sign    --key alice.sig.key --in doc.pdf --out doc.sig
 python -m vorlath_shield verify  --pub alice.sig.pub --in doc.pdf --sig doc.sig
 python -m vorlath_shield info    --in secret.trsh                 # inspect suite / auth / size
-python -m pytest -q                                              # 497 tests (functional + KAT + ACVP + property/fuzz + high-assurance + cross-impl interop)
+python -m pytest -q                                              # 502 tests (functional + KAT + ACVP + property/fuzz + high-assurance + cross-impl interop)
 ```
 
 ```python
@@ -121,7 +118,7 @@ see [`VERIFICATION_GAP_MAP.md`](VERIFICATION_GAP_MAP.md).
 
 "CI-gated" is not "externally reproducible," so both are provided:
 
-- **[`REPRODUCE.md`](REPRODUCE.md)** — re-derive all 497 tests + the three proofs + the
+- **[`REPRODUCE.md`](REPRODUCE.md)** — re-derive all 502 tests + the three proofs + the
   constant-time measurement from a clean checkout in ~30 min.
 - **[`release/`](release/)** — a deterministic, content-addressed **verification bundle**
   (`make_bundle.py` → `RELEASE_MANIFEST.json`, a SHA-256 Merkle-style root over source + proof

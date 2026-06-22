@@ -21,11 +21,11 @@ the ACVP/KAT vectors + the interop corpus. If your digest matches the signed one
 `release/README.md` for the cosign verification command), you are re-running the exact
 artifacts that were tested and proved — not a lookalike.
 
-## 1. Tests (497) — functional + KAT + ACVP conformance + property/fuzz + interop
+## 1. Tests (502) — functional + KAT + ACVP conformance + property/fuzz + interop
 
 ```bash
 pip install -r requirements.txt
-python -m pytest -q                       # expect: 497 passed
+python -m pytest -q                       # expect: 502 passed
 ```
 
 What this establishes: primitives behave (incl. the **ACVP implicit-rejection branch** and
@@ -36,11 +36,11 @@ decoder agrees byte-for-byte on every positive and rejects every negative at its
 
 Two of the three **symbolic** provers (Verifpal, Tamarin) are pinned by SHA-256 in the hermetic image, so
 you do not have to install them by hand. That image runs **those two symbolic lineages plus the
-497-test suite**, exiting non-zero on any failure:
+502-test suite**, exiting non-zero on any failure:
 
 ```bash
 docker build -t vorlath-shield-verify -f Dockerfile .
-docker run --rm vorlath-shield-verify        # Verifpal + Tamarin + 497 tests; non-zero on any failure
+docker run --rm vorlath-shield-verify        # Verifpal + Tamarin + 502 tests; non-zero on any failure
 ```
 
 The **ProVerif** (unbounded symbolic, 4th lineage) and **CryptoVerif** (computational) proofs are *not*
