@@ -90,7 +90,7 @@ above), ML-KEM's small decryption error / implicit rejection, curve point-valida
   to it are decryptable. FS w.r.t. the SENDER's long-term key IS proved (goal 11).
 - Side channels beyond timing (power / EM / cache / fault) — `SECURITY.md`, `CONSTANT_TIME.md`.
 - FIPS 140-3 (CAVP/CMVP) validation — `SECURITY.md` ("CNSA 2.0" = algorithm set, never a cert claim).
-- Wire-encoding length-framing fidelity — carried by ACVP + the 502-test suite + `interop/` + `FORMAT.md`.
+- Wire-encoding length-framing fidelity — carried by ACVP + the 508-test suite + `interop/` + `FORMAT.md`.
 - Anonymous-mode flag-stripping as a distinct Tamarin rule, and injective (anti-replay) agreement —
   carried by the Verifpal models and the implementation/interop tests.
 

@@ -33,7 +33,7 @@ libraries beyond the cross-implementation differential below; anything claiming 
 | **4 formal lineages** | `formal/` (Verifpal, Tamarin, ProVerif, CryptoVerif), CI-gated | secrecy under single-leg break, sender-auth, downgrade, KCI — over unbounded sessions |
 | **2nd primitive lineage** | `interop/cross_impl.py` vs PQClean/C (`pqcrypto`) | ML-KEM/ML-DSA cross-validated on random inputs, verified live |
 | **Conformance** | `test_acvp.py` (NIST ACVP vectors) | ML-KEM/ML-DSA/SLH-DSA primitive correctness vs NIST |
-| **502-test suite** | `pytest` (functional + KAT + property/fuzz + interop) | the code path actually exercised |
+| **508-test suite** | `pytest` (functional + KAT + property/fuzz + interop) | the code path actually exercised |
 | **Reproducibility** | `REPRODUCE.md` + cosign-signed `release/RELEASE_MANIFEST.json` | re-derive every green check from a clean checkout |
 | **Inventory** | CycloneDX `sbom/` + `cbom/` | dependency + crypto bill of materials |
 | **Self-audit** | `VERIFICATION_GAP_MAP.md` | we already ranked our own remaining seams |
@@ -88,7 +88,7 @@ gold standard; (d) side channels beyond timing; (e) not FIPS 140-3 validated. A 
 
 ## 7. Reproduce everything
 
-`REPRODUCE.md` re-derives the 502 tests + the proofs + the constant-time measurement from a clean
+`REPRODUCE.md` re-derives the 508 tests + the proofs + the constant-time measurement from a clean
 checkout. The cosign-signed `release/RELEASE_MANIFEST.json` pins the exact bytes under a single
 content-addressed `bundle_digest`, so a reviewer can confirm they are auditing what was proved/tested.
 

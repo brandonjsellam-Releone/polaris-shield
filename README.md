@@ -64,7 +64,7 @@ python -m vorlath_shield decrypt --key alice.kem.key --in secret.trsh --out out.
 python -m vorlath_shield sign    --key alice.sig.key --in doc.pdf --out doc.sig
 python -m vorlath_shield verify  --pub alice.sig.pub --in doc.pdf --sig doc.sig
 python -m vorlath_shield info    --in secret.trsh                 # inspect suite / auth / size
-python -m pytest -q                                              # 502 tests (functional + KAT + ACVP + property/fuzz + high-assurance + cross-impl interop)
+python -m pytest -q                                              # 508 tests (functional + KAT + ACVP + property/fuzz + high-assurance + cross-impl interop)
 ```
 
 ```python
@@ -118,7 +118,7 @@ see [`VERIFICATION_GAP_MAP.md`](VERIFICATION_GAP_MAP.md).
 
 "CI-gated" is not "externally reproducible," so both are provided:
 
-- **[`REPRODUCE.md`](REPRODUCE.md)** — re-derive all 502 tests + the three proofs + the
+- **[`REPRODUCE.md`](REPRODUCE.md)** — re-derive all 508 tests + the three proofs + the
   constant-time measurement from a clean checkout in ~30 min.
 - **[`release/`](release/)** — a deterministic, content-addressed **verification bundle**
   (`make_bundle.py` → `RELEASE_MANIFEST.json`, a SHA-256 Merkle-style root over source + proof

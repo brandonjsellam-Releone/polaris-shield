@@ -82,7 +82,7 @@ and published at `/.well-known/security.txt`.
 ## Reproduce & verify
 
 Don't take this posture on faith — re-derive it: [`REPRODUCE.md`](REPRODUCE.md) re-runs the
-502 tests, all four machine-checked proofs, and the constant-time measurement from a clean
+508 tests, all four machine-checked proofs, and the constant-time measurement from a clean
 checkout, and [`release/`](release/) lets you confirm (via a cosign-signed, content-addressed
 manifest) that the bytes you re-run are the exact bytes that were signed. The mechanized-vs-argued
 map is [`FORMAL_COVERAGE.md`](FORMAL_COVERAGE.md).

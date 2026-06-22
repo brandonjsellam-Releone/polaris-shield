@@ -42,7 +42,7 @@ table entry, not a rewrite: the classical contribution to the combiner is zero-l
 key rests solely on the ML-KEM-1024 secret. The recipient's `0x03` key pins the suite, so downgrade
 resistance is unchanged; a classical-only seal is refused for `0x03`.
 
-**Verification (done, not promissory).** Suite `0x03` is exercised by the full **502-test** suite (the
+**Verification (done, not promissory).** Suite `0x03` is exercised by the full **508-test** suite (the
 per-suite parametrized tests now run for `0x01`/`0x02`/`0x03`, plus a dedicated pure-PQC test): round-
 trip (anonymous + authenticated), downgrade rejection, and the classical-only refusal all pass. **No
 new formal model was needed** — a pure-PQC suite's confidentiality is *exactly* the single-leg (PQ-only)
@@ -97,7 +97,7 @@ ML-KEM leg, **and** the out-of-band PPK — so confidentiality holds even if BOT
 legs are broken, exactly the RFC 8784 transition rationale. The PPK's presence is bound via FLAG_PPK
 in the signed / AEAD-AAD transcript (so it cannot be stripped without invalidating the envelope), and
 it is **backward-compatible**: with no PPK the envelope bytes are unchanged, so every frozen
-interop / KAT vector still verifies. Verified by the **502-test** suite (round-trip, wrong-PPK reject,
+interop / KAT vector still verifies. Verified by the **508-test** suite (round-trip, wrong-PPK reject,
 missing-PPK refusal, back-compat, and composition with authenticated mode + the pure-PQC suite 0x03).
 No new formal model is required: a PPK only ADDS a length-framed leg to the same combiner the four
 lineages already prove key-indistinguishable, so it can only strengthen — never weaken — the
@@ -109,9 +109,9 @@ lineages already prove key-indistinguishable, so it can only strengthen — neve
 |---|---|---|
 | Algorithm set | CNSA 2.0 Cat-5 (suite 0x02), CBOM inventory | — |
 | Hybrid KE + signatures | yes (4 proof lineages, ACVP, interop) | — |
-| Pure-CNSA mode | **suite 0x03 - shipped, 502-test verified** | — |
+| Pure-CNSA mode | **suite 0x03 - shipped, 508-test verified** | — |
 | LMS release signing | **sign_lms.py demonstrated (software, verified live)** | HSM-backed keygen/signing for an 800-208-*compliant* service |
-| RFC 8784 PPK | **shipped, 502-test verified** (3rd combiner leg, FLAG_PPK) | — |
+| RFC 8784 PPK | **shipped, 508-test verified** (3rd combiner leg, FLAG_PPK) | — |
 | CSfC dual-layer | transcript-binding combiner | section 4 positioning (doc only) |
 
 This document is posture and roadmap, not a certification or a claim of deployed capability. The
