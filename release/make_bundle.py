@@ -41,6 +41,7 @@ INCLUDE = [
     "FORMAL_COVERAGE.md", "STANDARDS_POSITION.md",
     "VERIFICATION_GAP_MAP.md", "BINDING.md", "GOV_ALIGNMENT.md", "CNSA_MIGRATION.md",
     "AUDIT_READINESS.md", "STANDARDS_ALIGNMENT.md", "TNO_PQC_HANDBOOK_ALIGNMENT.md",
+    "TNO_PQC_SELF_ASSESSMENT.md",
     "requirements.txt", "pyproject.toml", "Dockerfile",
     "test_*.py",
 ]
