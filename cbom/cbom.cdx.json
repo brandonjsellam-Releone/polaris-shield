@@ -5,13 +5,13 @@
   "metadata": {
     "component": {
       "type": "application",
-      "name": "polaris-shield",
+      "name": "vorlath-shield",
       "version": "2.0.0",
-      "description": "POLARIS Shield cryptographic inventory (CBOM) - algorithm-agile hybrid PQC."
+      "description": "VORLATH Shield cryptographic inventory (CBOM) - algorithm-agile hybrid PQC."
     },
     "tools": [
       {
-        "vendor": "POLARIS",
+        "vendor": "VORLATH",
         "name": "make_cbom.py",
         "version": "1.0"
       }
@@ -53,16 +53,92 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "NIST SP 800-38D"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x01, 0x02"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:ed25519",
+      "name": "Ed25519",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "parameterSetIdentifier": "Ed25519",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.101.112"
+      },
+      "properties": [
+        {
+          "name": "vorlath:standard",
+          "value": "RFC 8032"
+        },
+        {
+          "name": "vorlath:quantum-resistant",
+          "value": "false"
+        },
+        {
+          "name": "vorlath:used-in-suite",
+          "value": "high-assurance (opt-in triple-sign, classical leg)"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "alg:ed448",
+      "name": "Ed448",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "parameterSetIdentifier": "Ed448",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.101.113"
+      },
+      "properties": [
+        {
+          "name": "vorlath:standard",
+          "value": "RFC 8032"
+        },
+        {
+          "name": "vorlath:quantum-resistant",
+          "value": "false"
+        },
+        {
+          "name": "vorlath:used-in-suite",
+          "value": "high-assurance (opt-in triple-sign, classical leg)"
         }
       ]
     },
@@ -88,15 +164,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "RFC 5869 / SP 800-56C"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x01"
         }
       ]
@@ -123,15 +199,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "RFC 5869 / SP 800-56C"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x02 (CNSA 2.0)"
         }
       ]
@@ -161,15 +237,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 204"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x01"
         }
       ]
@@ -199,15 +275,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 204"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x02 (CNSA 2.0)"
         }
       ]
@@ -237,15 +313,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 203"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x02 (CNSA 2.0)"
         }
       ]
@@ -275,15 +351,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 203"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x01"
         }
       ]
@@ -311,15 +387,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 180-4"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x01"
         }
       ]
@@ -347,15 +423,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 180-4"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x02 (CNSA 2.0)"
         }
       ]
@@ -384,15 +460,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 202"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "key-ids (both suites)"
         }
       ]
@@ -421,16 +497,16 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "FIPS 205"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
-          "value": "high-assurance (opt-in dual-sign)"
+          "name": "vorlath:used-in-suite",
+          "value": "high-assurance (opt-in dual/triple-sign)"
         }
       ]
     },
@@ -458,15 +534,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "RFC 7748"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "false"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x01"
         }
       ]
@@ -495,15 +571,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "RFC 7748"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "false"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "0x02 (CNSA 2.0)"
         }
       ]
@@ -530,15 +606,15 @@
       },
       "properties": [
         {
-          "name": "polaris:standard",
+          "name": "vorlath:standard",
           "value": "RFC 7914"
         },
         {
-          "name": "polaris:quantum-resistant",
+          "name": "vorlath:quantum-resistant",
           "value": "true"
         },
         {
-          "name": "polaris:used-in-suite",
+          "name": "vorlath:used-in-suite",
           "value": "at-rest private-key wrap"
         }
       ]
