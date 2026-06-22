@@ -40,7 +40,7 @@ INCLUDE = [
     "SECURITY-DISCLOSURE.md", "CONSTANT_TIME.md", "README.md", "REPRODUCE.md",
     "FORMAL_COVERAGE.md", "STANDARDS_POSITION.md",
     "VERIFICATION_GAP_MAP.md", "BINDING.md", "GOV_ALIGNMENT.md", "CNSA_MIGRATION.md",
-    "AUDIT_READINESS.md", "STANDARDS_ALIGNMENT.md",
+    "AUDIT_READINESS.md", "STANDARDS_ALIGNMENT.md", "TNO_PQC_HANDBOOK_ALIGNMENT.md",
     "requirements.txt", "pyproject.toml", "Dockerfile",
     "test_*.py",
 ]
