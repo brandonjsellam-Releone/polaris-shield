@@ -96,6 +96,32 @@ Handbook's literal ML-DSA+EdDSA hybrid — or the strictly-strongest ML-DSA+SLH-
 directly**, not in principle. We flag the dual-only default and its real cost so the choice is
 auditable, not hidden.
 
+## 5. ANSSI (France) — the convergent European national-agency line
+
+The Dutch TNO Handbook is not alone: France's **ANSSI** gives convergent guidance, and the Shield aligns
+with it on the same axes.
+
+- **Hybrid, strongly.** ANSSI's PQC opinion (2022, updated 2023) recommends **hybrid** key-establishment
+  *and* signature mechanisms — classical + post-quantum together — and its Feb-2026 TLS 1.3 guidance lists
+  **"hybrid cryptography (recommended)"**, with PSK only as an interim. The Shield's **KEM is hybrid**
+  (X25519/X448 + ML-KEM) — **CONFORM**. On **signatures** ANSSI **recommends** (not mandates) a
+  classical+PQ hybrid for new deployments, incl. TLS 1.3; the Shield's *default* signature is PQ-only
+  ML-DSA (the §4 deviation) — **but the `triple_sign` path (ML-DSA + SLH-DSA + EdDSA) is exactly the
+  classical-hybrid signature ANSSI recommends**, so the recommended option is shipped.
+- **Algorithm families.** ANSSI is open to **ML-KEM-768/1024, ML-DSA, SLH-DSA, FN-DSA, LMS/XMSS** (and
+  **FrodoKEM** as a conservative unstructured-lattice KEM). The Shield uses ML-KEM-768/1024, ML-DSA,
+  opt-in SLH-DSA, and LMS — **CONFORM on the families** (FrodoKEM is the same conservative-option gap noted
+  for the TNO Handbook — a conservative choice for long-term secrets; its omission is not a compliance gap
+  for general-purpose use).
+- **Certification timeline.** ANSSI has *signalled* a ~2027 PQC certification track. This is a
+  **non-binding timeline signal**, not a codified mandate (and may align to EU-wide standards such as
+  ENISA) — tracked, not claimed as compliance.
+
+**Honest limit.** ANSSI's *public* guidance does **not** publish a simple "NIST level 5 vs 3" mapping — it
+leverages NIST's selections while reserving the right to deviate (e.g. FrodoKEM). So this is a
+**convergence note**, not an ANSSI certification, validation, or endorsement. *Sources:* ANSSI PQC pages
+(cyber.gouv.fr); ANSSI views on the PQC transition; ANSSI Feb-2026 TLS 1.3 guidance.
+
 ## Net
 
 Against the Handbook's technical chapters the Shield is a near-complete **instantiation** of the
