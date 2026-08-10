@@ -14,7 +14,6 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import pytest  # noqa: E402
 
 CBOM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cbom", "cbom.cdx.json")
 
