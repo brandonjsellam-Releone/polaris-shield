@@ -22,7 +22,7 @@ dependencies = [
   "kyber-py==1.2.0",
   "dilithium-py==1.4.0",
   "slh-dsa==0.2.3",
-  "cryptography>=48.0.1,<49",   # >=48.0.1 clears every 2026 advisory pip-audit flags on 44/45/46/47; <49 matches requirements.txt + the Dockerfile major>=48 gate
+  "cryptography>=50.0.0,<51",   # >=50.0.0 clears PYSEC-2026-3552/3553/3554 (PKCS#7 oracle; cert-chain path-building DoS; DNS name-constraint escape). 3553/3554 are fixed in 49.0.0, 3552 only in 50.0.0, so 50 is the floor. <51 matches requirements.txt + the Dockerfile major>=50 gate
 ]
 
 [project.optional-dependencies]

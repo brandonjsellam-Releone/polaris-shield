@@ -8,7 +8,7 @@
 #
 # A successful build == ruff + mypy + the full pytest suite + KAT reproducibility
 # + the live demo + Verifpal (2 bounded models) + Tamarin (11 unbounded lemmas),
-# ALL green, with cryptography>=48. The build IS the verification.
+# ALL green, with cryptography>=50. The build IS the verification.
 FROM python:3.13-slim@sha256:c33f0bc4364a6881bed1ec0cc2665e6c53c87a43e774aaeab88e6f17af105e4f
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 PIP_DISABLE_PIP_VERSION_CHECK=1 PYTHONDONTWRITEBYTECODE=1
@@ -38,7 +38,7 @@ COPY . /shield
 # Install with the REAL pinned dependencies and PROVE the cryptography pin is met
 # (the host dev env may carry an older cryptography; here we use the real pin).
 RUN pip install --no-cache-dir -e ".[dev]" \
- && python -c "import cryptography,sys; v=int(cryptography.__version__.split('.')[0]); print('cryptography', cryptography.__version__); sys.exit(0 if v>=48 else 1)"
+ && python -c "import cryptography,sys; v=int(cryptography.__version__.split('.')[0]); print('cryptography', cryptography.__version__); sys.exit(0 if v>=50 else 1)"
 
 # --- the assurance stack; any non-zero exit fails the build ---
 RUN echo '>> ruff'   && ruff check .
@@ -56,7 +56,7 @@ RUN echo '>> Tamarin (unbounded)' \
  && ! grep -qiE 'falsified|analysis incomplete' /tmp/tam.log \
  && [ "$(grep -cE 'verified \([0-9]+ steps\)' /tmp/tam.log)" -ge 11 ]
 RUN echo '==================================================================' \
- && echo ' ALL VORLATH SHIELD ASSURANCE CHECKS GREEN (Linux, cryptography>=48)' \
+ && echo ' ALL VORLATH SHIELD ASSURANCE CHECKS GREEN (Linux, cryptography>=50)' \
  && echo '=================================================================='
 
 # Default: re-run the fast suite when the image is run.
