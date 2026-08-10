@@ -1,3 +1,9 @@
+# Secrets. Nothing here reads env vars today, so this is prophylactic: the moment
+# someone adds a deploy or signing script, .env is where the credential will land.
+.env
+.env.*
+!.env.example
+
 # Python build / cache artifacts
 __pycache__/
 *.pyc
