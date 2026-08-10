@@ -3,6 +3,6 @@
 kyber-py==1.2.0
 dilithium-py==1.4.0
 slh-dsa==0.2.3
-cryptography>=48.0.1,<49
+cryptography>=50.0.0,<51
 # dev / test (also available via:  pip install -e .[dev] )
 pytest>=8
