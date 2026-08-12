@@ -341,6 +341,56 @@ def test_sender_block_transplant_is_rejected(suite):
         shield.decrypt(spliced, priv)
 
 
+@pytest.mark.parametrize("suite", SUITES)
+def test_forged_keyid_public_bundle_is_rejected(suite):
+    # A public key-id is a fingerprint of the key material, not a free-form label. A bundle that
+    # pairs a VICTIM's key-id with an ATTACKER's public key must be rejected at parse — otherwise
+    # sender authentication is bypassable: the recipient's identity check compares key-ids, and the
+    # attacker signs with their own (valid) key. Regression for the sender-auth binding fix.
+    alice_pub, _ = shield.generate_signing_keys(suite)
+    mallory_pub, mallory_priv = shield.generate_signing_keys(suite)
+    alice_kid = shield.sig_key_id(alice_pub)
+
+    # Rebuild a SIG_PUB bundle: Alice's key-id + Mallory's public key.
+    sid, _kid, (mallory_pk,) = shield._parse_key(mallory_pub, shield._ROLE_SIG_PUB)
+    forged_pub = shield._serialize_key(sid, shield._ROLE_SIG_PUB, alice_kid, mallory_pk)
+
+    # Parsing/reading the forged public bundle must fail — the key-id no longer matches its key.
+    with pytest.raises(ValueError):
+        shield.sig_key_id(forged_pub)
+
+    # And the full impersonation path must fail: Mallory seals with a forged identity, the recipient
+    # requires Alice, and the open must NOT return the plaintext.
+    _sid, _k, (mallory_sk,) = shield._parse_key(mallory_priv, shield._ROLE_SIG_PRIV)
+    forged_priv = shield._serialize_key(sid, shield._ROLE_SIG_PRIV, alice_kid, mallory_sk)
+    rcpt_pub, rcpt_priv = shield.generate_recipient_keys(suite)
+    env = shield.encrypt_authenticated(b"transfer the vault", rcpt_pub, forged_priv, forged_pub)
+    with pytest.raises(Exception):
+        shield.decrypt_authenticated(env, rcpt_priv, alice_pub)
+
+
+@pytest.mark.parametrize("suite", SUITES)
+def test_forged_keyid_kem_bundle_is_rejected(suite):
+    # Same binding for recipient (KEM) public bundles: a mismatched key-id must be rejected.
+    _, _ = shield.generate_recipient_keys(suite)
+    victim_pub, _ = shield.generate_recipient_keys(suite)
+    attacker_pub, _ = shield.generate_recipient_keys(suite)
+    victim_kid = shield.kem_key_id(victim_pub)
+    sid, _kid, parts = shield._parse_key(attacker_pub, shield._ROLE_KEM_PUB)
+    forged = shield._serialize_key(sid, shield._ROLE_KEM_PUB, victim_kid, *parts)
+    with pytest.raises(ValueError):
+        shield.kem_key_id(forged)
+
+
+@pytest.mark.parametrize("suite", SUITES)
+def test_honest_authenticated_roundtrip_still_works(suite):
+    # Positive control: the fix must not break legitimate authenticated exchange.
+    rcpt_pub, rcpt_priv = shield.generate_recipient_keys(suite)
+    spk, ssk = shield.generate_signing_keys(suite)
+    env = shield.encrypt_authenticated(b"hello from the real sender", rcpt_pub, ssk, spk)
+    assert shield.decrypt_authenticated(env, rcpt_priv, spk) == b"hello from the real sender"
+
+
 # ----------------------------------------------------------------- suite / construction separation
 def test_cross_suite_envelope_is_rejected():
     # An envelope sealed under suite 0x02 must not open with a 0x01 private key (and vice versa).
