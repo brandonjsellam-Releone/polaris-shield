@@ -26,6 +26,7 @@ primitive libraries are reference implementations, not FIPS-validated modules.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import struct
 
 from cryptography.exceptions import InvalidTag
@@ -54,6 +55,10 @@ _ROLE_KEM_PUB = 1
 _ROLE_KEM_PRIV = 2
 _ROLE_SIG_PUB = 3
 _ROLE_SIG_PRIV = 4
+
+# Domain-separation label per PUBLIC role, used by _parse_key to recompute and verify each
+# bundle's key-id fingerprint (FORMAT.md §5.2). Must match the primary encoder's labels exactly.
+_PUBLIC_KID_LABEL = {_ROLE_KEM_PUB: b"VRSK-kem-pub", _ROLE_SIG_PUB: b"VRSK-sig-pub"}
 
 # Domain-separation labels / salt / context — FORMAT.md §2.6 and §3.
 _COMBINER_LABEL = b"VORLATH-Shield/2 hybrid-kem combiner"
@@ -145,6 +150,22 @@ def _parse_key(bundle: bytes, expect_role: int) -> tuple[int, bytes, list[bytes]
     while off < len(bundle):
         part, off = _read_tlv(bundle, off)
         parts.append(part)
+    # FORMAT.md §5.2 makes the key-id a SHAKE-256 fingerprint OF the public key material, not a
+    # free-form label. Recompute it for public bundles and reject a mismatch. Without this the id
+    # is attacker-chosen: a bundle carrying a victim's key-id next to the attacker's own public key
+    # satisfies every downstream identity comparison (which is key-id to key-id) while the
+    # signature verifies under the attacker's key — a total sender-authentication bypass.
+    # Private bundles carry the public key-id but not the public parts, so they cannot be
+    # recomputed here; the attack path runs through public bundles.
+    label = _PUBLIC_KID_LABEL.get(role)
+    if label is not None:
+        h = hashlib.shake_256()
+        h.update(label)
+        h.update(bytes([suite_id]))
+        for part in parts:
+            h.update(part)
+        if not hmac.compare_digest(key_id, h.digest(_KEY_ID_LEN)):
+            raise AltCodecError("key-id does not match the key material")
     return suite_id, key_id, parts
 
 
