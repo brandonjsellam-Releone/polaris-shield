@@ -36,6 +36,7 @@ import hashlib
 import os
 import struct
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 from cryptography.exceptions import InvalidTag
@@ -56,6 +57,32 @@ NONCE = 12                      # AES-256-GCM nonce length
 KEY_ID_LEN = 32                 # SHAKE-256 key fingerprint (256-bit, matches the apex tier)
 FLAG_AUTHENTICATED = 0x01       # envelope carries a sender signature
 FLAG_PPK = 0x02                 # AEAD key additionally mixes an out-of-band pre-shared key (RFC 8784-style)
+
+
+class PPKPolicy(str, Enum):
+    """What the RECIPIENT requires of an envelope's PPK binding.
+
+    FLAG_PPK is chosen by whoever produced the envelope, so it states what the SENDER did, never
+    what the recipient will accept. Those are different questions and the wire can only answer
+    the first. This enum is the second.
+
+    REQUIRED   the envelope MUST be PPK-bound, and a PPK must be configured locally. This is the
+               only policy under which the RFC 8784 purpose actually holds: an adversary who has
+               broken both KEM legs but lacks the PPK cannot produce an envelope this accepts.
+    OPTIONAL   a non-PPK envelope opens and any supplied PPK is ignored. This is the library's
+               original behaviour, kept deliberately for mixed-fleet rollouts where senders are
+               upgraded before recipients.
+    FORBIDDEN  the envelope must NOT be PPK-bound; use where a PPK is not provisioned and one
+               appearing would indicate misrouting or a downgrade attempt.
+
+    Policy is resolved BEFORE the local key is inspected, so a missing or failed-to-load PPK is a
+    configuration error under REQUIRED rather than a silent relaxation. Gating on "did a secret
+    turn up?" is how a strict setting becomes permissive at exactly the moment it matters.
+    """
+
+    REQUIRED = "required"
+    OPTIONAL = "optional"
+    FORBIDDEN = "forbidden"
 
 # domain-separation labels (never reused across contexts)
 _COMBINER_LABEL = b"VORLATH-Shield/2 hybrid-kem combiner"
@@ -337,22 +364,24 @@ def encrypt(plaintext: bytes, recipient_public_bundle: bytes,
 def decrypt(envelope: bytes, recipient_private_bundle: bytes,
             expected_sender_public: bytes | None = None,
             ppk: bytes | None = None,
-            require_ppk: bool = True) -> bytes:
+            *,
+            ppk_policy: PPKPolicy | str | None = None) -> bytes:
     """Reverse of encrypt(); raises on tamper, wrong key, bad sender, or malformed input.
 
     If `expected_sender_public` is given, the envelope MUST be authenticated by exactly
     that sender or decryption is refused.
 
-    If `ppk` is given, the envelope MUST be PPK-bound (FLAG_PPK) or decryption is refused.
-    Pass `require_ppk=False` to restore the previous permissive behaviour, in which a
-    non-PPK envelope opens and the supplied key is ignored.
+    Supplying `ppk` REQUIRES an explicit `ppk_policy` (see [`PPKPolicy`]); passing a key with
+    no policy raises, because the envelope's FLAG_PPK states what the sender did, not what you
+    will accept, and silently choosing either answer for you is the defect this gate closes.
+    Callers that pass no `ppk` are unaffected and need no policy.
 
-    That permissiveness is only safe if you do not rely on what the pre-shared key is FOR.
-    FLAG_PPK is set by whoever produced the envelope, and encryption here is public-key, so
-    anyone holding your public bundle can mint a non-PPK envelope; under `require_ppk=False`
-    it decrypts and the key you supplied is silently discarded. The RFC 8784-style guarantee
-    - that the derived key survives a break of BOTH the classical and the ML-KEM legs - holds
-    only for envelopes that are actually PPK-bound.
+    Scope of what REQUIRED buys, stated precisely so it is not over-read: an adversary who has
+    broken BOTH KEM legs but does not hold the PPK cannot construct an envelope this call
+    accepts. It does NOT provide sender authentication (a PPK is shared, so it identifies a
+    group, not a peer - use `expected_sender_public`), does NOT provide replay protection, does
+    NOT retroactively protect traffic already accepted under OPTIONAL, and rests on the PPK
+    having real entropy: a password-like PPK is offline-brute-forceable once the legs fall.
     """
     if not isinstance(envelope, (bytes, bytearray)):
         raise ValueError("envelope must be bytes")
@@ -406,31 +435,44 @@ def decrypt(envelope: bytes, recipient_private_bundle: bytes,
     elif expected_sender_public is not None:
         raise ValueError("expected an authenticated sender but envelope is anonymous")
 
-    # FLAG_PPK is chosen by whoever PRODUCED the envelope, so on its own it cannot express the
-    # RECIPIENT's intent. Accepting a non-PPK envelope while the caller passed `ppk=` was
-    # deliberate ("back-compat", test_ppk_rfc8784_third_leg) and is preserved behind
-    # require_ppk=False — but it cannot be the default, because it silently falsifies the
-    # property _derive_key documents: that the derived key "still holds even if BOTH the
-    # classical and the ML-KEM legs are broken".
-    #
-    # Encryption here is PUBLIC-key, so no break of either leg is needed to exploit it. Anyone
-    # holding the recipient's public bundle can mint an anonymous non-PPK envelope, and a
-    # recipient calling decrypt(env, priv, ppk=PSK) in the belief that this pins the channel to
-    # the out-of-band key gets attacker-chosen plaintext back with no error and no flag.
-    #
-    # Defaulting to strict mirrors the sender pin a few lines above ("expected an authenticated
-    # sender but envelope is anonymous"), which already fails closed on exactly this shape.
-    if flags & FLAG_PPK:
+    # Resolve POLICY FIRST, then look at the key. Doing it the other way - `if ppk and
+    # require_ppk` - gates the policy on whether a secret happened to load, so a rotation or
+    # config failure yielding ppk=None silently relaxes a channel the operator set to strict.
+    # Demonstrated on an earlier draft of this very fix: decrypt(evil, priv, ppk=None,
+    # require_ppk=True) returned attacker-chosen plaintext, under a parameter named `require`.
+    bound = bool(flags & FLAG_PPK)
+    if ppk_policy is None:
+        # A caller who passes a PPK has said nothing about what they will ACCEPT, and the
+        # envelope's flag cannot answer that for them. Silently picking either answer is how the
+        # original defect worked, so refuse to pick. Callers passing no PPK are unaffected.
+        if ppk:
+            raise ValueError(
+                "a pre-shared key was supplied without a ppk_policy; pass "
+                "ppk_policy=PPKPolicy.REQUIRED to reject envelopes that are not PPK-bound, or "
+                "PPKPolicy.OPTIONAL for the legacy behaviour in which an unbound envelope opens "
+                "and this key is ignored"
+            )
+        policy = PPKPolicy.OPTIONAL
+    else:
+        policy = PPKPolicy(ppk_policy)
+
+    if policy is PPKPolicy.REQUIRED:
+        if not ppk:
+            # Local misconfiguration, not an attack: say so precisely, and do not proceed.
+            raise ValueError("ppk_policy=REQUIRED but no pre-shared key was supplied")
+        if not bound:
+            raise ValueError("ppk_policy=REQUIRED but the envelope is not PPK-bound")
+    elif policy is PPKPolicy.FORBIDDEN and bound:
+        raise ValueError("ppk_policy=FORBIDDEN but the envelope is PPK-bound")
+
+    if bound:
         if not ppk:
             raise ValueError("envelope is PPK-bound (FLAG_PPK) but no pre-shared key was supplied")
         effective_ppk = ppk
     else:
-        if ppk and require_ppk:
-            raise ValueError(
-                "caller supplied a pre-shared key but the envelope is not PPK-bound; pass "
-                "require_ppk=False to accept unbound envelopes during a rollout (this gives up "
-                "the guarantee that the key survives a break of both KEM legs)"
-            )
+        # OPTIONAL with an unbound envelope: the library's original behaviour, now reached only
+        # by a caller who asked for it. The supplied key is genuinely unused here, and the
+        # RFC 8784 guarantee does NOT hold for this envelope.
         effective_ppk = b""
 
     ss_classical = s.ecdh.exchange(s.ecdh.from_private(x_priv), eph_pub)
@@ -452,14 +494,15 @@ def encrypt_authenticated(plaintext: bytes, recipient_public_bundle: bytes,
 
 def decrypt_authenticated(envelope: bytes, recipient_private_bundle: bytes,
                           expected_sender_public: bytes, ppk: bytes | None = None,
-                          require_ppk: bool = True) -> bytes:
+                          *, ppk_policy: PPKPolicy | str | None = None) -> bytes:
     """Open an envelope and require it to be authenticated by `expected_sender_public`.
 
     Proves sender identity and integrity but NOT freshness: a stateless one-pass open does
     not prevent replay of a captured envelope. Callers needing replay resistance must add an
     application-layer check (nonce/transcript dedup or an in-plaintext challenge/timestamp).
     """
-    return decrypt(envelope, recipient_private_bundle, expected_sender_public, ppk, require_ppk)
+    return decrypt(envelope, recipient_private_bundle, expected_sender_public, ppk,
+                   ppk_policy=ppk_policy)
 
 
 # ----------------------------------------------------------------- detached signatures
