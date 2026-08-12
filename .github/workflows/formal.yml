@@ -17,6 +17,12 @@ on:
       - ".github/workflows/formal.yml"
   workflow_dispatch:
 
+# Least privilege for GITHUB_TOKEN: the prover jobs only read the repo (checkout) and install
+# pinned, content-addressed tooling. None of them write to the repo, so the token is read-only
+# by default; a job that genuinely needs more must widen it explicitly.
+permissions:
+  contents: read
+
 jobs:
   prove:
     name: prove ${{ matrix.model }} (Verifpal)
