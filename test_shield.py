@@ -138,10 +138,48 @@ def test_ppk_rfc8784_third_leg():
         shield.decrypt(env, priv, ppk=b"\x22" * 32)
     with pytest.raises(ValueError):                       # PPK-bound envelope, no PPK supplied
         shield.decrypt(env, priv)
-    # a non-PPK envelope ignores any supplied PPK (back-compat) and still opens
+    # A non-PPK envelope no longer opens when the caller supplies a PPK. This assertion used to
+    # read the other way, justified as back-compat. The problem is that FLAG_PPK is chosen by
+    # whoever PRODUCED the envelope, so it cannot express the recipient's intent, and encryption
+    # is public-key: anyone holding the recipient's public bundle can mint a non-PPK envelope
+    # that a caller passing ppk= would accept, with the supplied key silently discarded. The
+    # permissive behaviour is preserved, but it now has to be asked for.
     env2 = shield.encrypt(b"no ppk", pub)
     assert not (env2[6] & shield.FLAG_PPK)
-    assert shield.decrypt(env2, priv, ppk=b"\x33" * 32) == b"no ppk"
+    with pytest.raises(ValueError):
+        shield.decrypt(env2, priv, ppk=b"\x33" * 32)
+    assert shield.decrypt(env2, priv, ppk=b"\x33" * 32, require_ppk=False) == b"no ppk"
+    assert shield.decrypt(env2, priv) == b"no ppk"        # no ppk supplied at all: unaffected
+
+
+def test_unbound_envelope_cannot_impersonate_a_ppk_channel():
+    """The attack the permissive default allowed, with no crypto break of any kind.
+
+    Encryption is public-key, so an attacker needs ONLY the recipient's public bundle. Under the
+    old behaviour a recipient calling decrypt(env, priv, ppk=PSK) -- believing that pinned the
+    channel to the out-of-band pre-shared key -- got the attacker's plaintext back: no error, no
+    flag. The RFC 8784 property (the key survives a break of BOTH KEM legs) degraded silently to
+    the ordinary two-leg hybrid.
+    """
+    psk = b"\x5A" * 32
+    pub, priv = shield.generate_recipient_keys(0x02)
+
+    evil = shield.encrypt(b"attacker-chosen plaintext", pub)   # public bundle only
+    assert not (evil[6] & shield.FLAG_PPK)
+    with pytest.raises(ValueError, match="not PPK-bound"):
+        shield.decrypt(evil, priv, ppk=psk)
+
+    # The pin must also hold through the authenticated wrapper, which threads ppk through.
+    spk, ssk = shield.generate_signing_keys(0x02)
+    signed_unbound = shield.encrypt_authenticated(b"signed but unbound", pub, ssk, spk)
+    with pytest.raises(ValueError, match="not PPK-bound"):
+        shield.decrypt_authenticated(signed_unbound, priv, spk, ppk=psk)
+
+    # An honestly PPK-bound envelope is unaffected in both directions.
+    good = shield.encrypt(b"bound", pub, ppk=psk)
+    assert shield.decrypt(good, priv, ppk=psk) == b"bound"
+    with pytest.raises(ValueError):
+        shield.decrypt(good, priv)
 
 
 def test_ppk_combines_with_authentication_and_pure_pqc():
