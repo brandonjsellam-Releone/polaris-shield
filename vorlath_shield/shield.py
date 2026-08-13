@@ -33,6 +33,7 @@ HONEST CAVEATS (read tech/README.md and SECURITY.md):
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import struct
 from dataclasses import dataclass
@@ -65,6 +66,12 @@ AUTH_CTX = b"VORLATH-Shield/auth/v2"   # authenticated-handshake signatures
 
 # key-bundle roles
 _ROLE_KEM_PUB, _ROLE_KEM_PRIV, _ROLE_SIG_PUB, _ROLE_SIG_PRIV = 1, 2, 3, 4
+
+# Domain-separation label used to derive each PUBLIC bundle's key-id fingerprint. Must match the
+# labels in generate_recipient_keys / generate_signing_keys exactly. _parse_key uses this to
+# recompute and verify the key-id so it cannot be forged. Only public roles appear here: a private
+# bundle carries the public key-id but not the public parts, so it cannot be recomputed on parse.
+_PUBLIC_KID_LABEL = {_ROLE_KEM_PUB: b"VRSK-kem-pub", _ROLE_SIG_PUB: b"VRSK-sig-pub"}
 
 
 # ----------------------------------------------------------------- ECDH adapters
@@ -213,6 +220,18 @@ def _parse_key(bundle: bytes, expect_role: int) -> tuple[int, bytes, list[bytes]
     while off < len(bundle):
         part, off = _read_tlv(bundle, off)
         parts.append(part)
+    # SECURITY (sender-auth binding): the key-id is a SHAKE-256 fingerprint of the PUBLIC key
+    # material, computed at generation (generate_signing_keys / generate_recipient_keys). It is
+    # NOT a free-form label. Recompute it here for public bundles and reject any mismatch —
+    # otherwise the id is attacker-controlled: a bundle can carry a victim's key-id alongside the
+    # attacker's own public key, and every downstream identity check (which compares key-ids) then
+    # passes, bypassing sender authentication. Private bundles carry the public key-id but hold
+    # private parts, so they cannot be recomputed here; the attack path runs through public bundles.
+    _expected = _PUBLIC_KID_LABEL.get(role)
+    if _expected is not None:
+        recomputed = _shake16(_expected, bytes([suite_id]), *parts)
+        if not hmac.compare_digest(key_id, recomputed):
+            raise ValueError("key-id does not match the key material")
     return suite_id, key_id, parts
 
 
