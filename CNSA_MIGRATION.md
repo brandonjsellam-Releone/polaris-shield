@@ -66,7 +66,22 @@ the "signing-first" workflow end-to-end on a genuinely low-volume surface. It us
 (`lms_sha256_m24_h5` / `lmots_sha256_n24_w8`). The script is a self-checking round trip (keygen, sign,
 verify, plus a tampered-digest negative control), refuses to proceed if prior one-time state is
 present, and **shreds the spent `.prv` by default** so a one-time leaf can never be silently reused.
-`make sign-lms`, or the hermetic gate `docker build -f release/lms.Dockerfile .` (build == pass).
+Run it as `python release/sign_lms.py --require-manifest` (there is no Makefile in this repo, so an
+earlier `make sign-lms` here did not exist), or via the hermetic gate
+`docker build -f release/lms.Dockerfile release` — note the build context is `release`, not `.`,
+because the Dockerfile's `COPY` paths resolve against the context.
+
+**`--require-manifest` matters, and the Docker gate does not use it.** `RELEASE_MANIFEST.json` is
+gitignored build output, so on a clean checkout the script falls back to a fixed placeholder digest
+(`0000…0001`) and still completes a valid round trip. That fallback is legitimate — it proves the
+sign/verify path without a build — but it is **not a release signature**. The summary line now
+distinguishes the two (`SELFTEST PASS:` vs `PASS: … over RELEASE_MANIFEST.json bundle_digest`), and
+`--require-manifest` refuses the fallback outright.
+
+`lms.Dockerfile` runs `python /work/sign_lms.py` with no flag, and its
+`COPY RELEASE_MANIFEST.jso[n]` glob makes the manifest optional, so **"build == pass" there proves
+the round trip, not a release signature** unless a manifest is present in the build context. Run
+`release/make_bundle.py` first if you mean to sign an actual release.
 Verified live: 784-byte signature, 52-byte public key, verify VALID / tampered REJECTED, exit 0.
 ML-DSA-87 stays the general-purpose signature; LMS is *only* for this release role.
 
