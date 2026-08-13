@@ -49,14 +49,29 @@ line-length = 110
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B"]
+# "S" is flake8-bandit. It is here as the LINT BACKSTOP for the TNO deprecated-primitive
+# claim: S324 flags an insecure hash (MD5/SHA-1) at the call site, so a stray primitive is
+# caught even before test_tno_code_derived.py's AST scan sees it. Two independent
+# mechanisms, because the claim in TNO_PQC_SELF_ASSESSMENT.md is made to a
+# government-facing reader and was, until now, enforced by neither.
+select = ["E", "F", "W", "I", "UP", "B", "S"]
 # E501 (long lines) and E702 (compact one-line statements) suit the deliberate dense crypto layout.
 ignore = ["E501", "E702"]
 
 [tool.ruff.lint.per-file-ignores]
 # Negative tests deliberately assert a generic raise: the failure is InvalidTag (from
 # `cryptography`) for tamper/wrong-key and ValueError for malformed/suite-mismatch input.
-"test_*.py" = ["B017"]
+"test_*.py" = [
+    "B017",
+    # A test asserts; that is its mechanism, not a security smell.
+    "S101",
+    # Property tests deliberately swallow generation-time errors from Hypothesis.
+    "S110",
+]
+# Vector generators are development tooling, not shipped code. Their asserts are
+# self-checks on the vectors being produced - the right mechanism there too.
+"gen_*.py" = ["S101"]
+"interop/gen_*.py" = ["S101", "S110"]
 
 [tool.mypy]
 python_version = "3.10"
