@@ -51,11 +51,16 @@ import sys
 # from tech/ or as a module — mirrors the sys.path shim used by the repo's tests.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _TECH = os.path.dirname(_HERE)
-if _TECH not in sys.path:
-    sys.path.insert(0, _TECH)
+# _TECH for `vorlath_shield`; _HERE for the sibling `altcodec`. _HERE is added by Python itself
+# when this file is RUN as a script, but not when it is IMPORTED (as the drift test imports it),
+# so add it explicitly rather than depending on how the caller got here.
+for _p in (_TECH, _HERE):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import altcodec  # noqa: E402  (same shim; used only for its declared-scope table)
 
 from vorlath_shield import shield  # noqa: E402  (after sys.path shim)
-import altcodec  # noqa: E402  (same shim; used only for its declared-scope table)
 
 OUT_PATH = os.path.join(_HERE, "pstv_vectors.json")
 

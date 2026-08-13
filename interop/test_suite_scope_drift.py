@@ -45,6 +45,7 @@ for _p in (_ROOT, _HERE):
 
 import altcodec  # noqa: E402
 import gen_pstv_vectors  # noqa: E402
+
 from vorlath_shield import shield  # noqa: E402
 
 _VECTORS = json.load(open(os.path.join(_HERE, "pstv_vectors.json"), encoding="utf-8"))
