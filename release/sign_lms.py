@@ -113,11 +113,18 @@ def fail(msg, code=1):
     sys.exit(code)
 
 
-def load_bundle_digest():
+def load_bundle_digest(require_manifest=False):
     """Return (digest_bytes, source_label). Falls back to a fixed self-test
     digest if the manifest is absent or malformed -- the round trip must still
-    prove the sign/verify path."""
+    prove the sign/verify path.
+
+    `require_manifest` (CLI: --require-manifest) refuses that fallback. RELEASE_MANIFEST.json is
+    gitignored build output, so the fallback is the path EVERY clean checkout takes: anything
+    that means to sign an actual release must say so, or it signs the placeholder instead."""
     if not os.path.exists(MANIFEST):
+        if require_manifest:
+            fail(f"--require-manifest was given but {MANIFEST} does not exist. "
+                 "Run release/make_bundle.py first; refusing to sign the self-test digest.")
         sys.stderr.write(
             f"NOTE: {MANIFEST} not found; using fixed self-test digest.\n"
         )
@@ -128,6 +135,9 @@ def load_bundle_digest():
         hex_digest = data["bundle_digest"]
         digest = bytes.fromhex(hex_digest)
     except (ValueError, KeyError) as exc:
+        if require_manifest:
+            fail(f"--require-manifest was given but bundle_digest is unreadable ({exc}). "
+                 "Refusing to sign the self-test digest.")
         sys.stderr.write(
             f"NOTE: could not read bundle_digest ({exc}); using self-test digest.\n"
         )
@@ -139,6 +149,7 @@ def load_bundle_digest():
 
 def main():
     keep_prv = "--keep-prv" in sys.argv[1:]
+    require_manifest = "--require-manifest" in sys.argv[1:]
 
     try:
         import pyhsslms
@@ -152,7 +163,7 @@ def main():
 
     os.makedirs(OUT_DIR, exist_ok=True)
 
-    digest, source = load_bundle_digest()
+    digest, source = load_bundle_digest(require_manifest)
     digest_hex = digest.hex()
 
     print("VORLATH Shield -- SP 800-208 LMS release signing (demo, software-only)")
@@ -271,7 +282,17 @@ def main():
         except OSError as exc:  # pragma: no cover - defensive
             sys.stderr.write(f"WARN: could not remove spent .prv: {exc}\n")
 
-    print("PASS: LMS release signed and verified (self-checking round trip).")
+    # The summary line has to say WHICH digest was signed. Both modes previously ended with an
+    # identical "PASS:", so anything reading the last line or the exit code - a human skimming,
+    # a CI step, a release checklist - could not distinguish a real release signature from a
+    # signature over the constant placeholder. The NOTE on stderr and the sidecar's
+    # "digest source" field were already honest; this line was the one place that was not.
+    if source.startswith("self-test"):
+        print(f"SELFTEST PASS: sign/verify round trip proven over the PLACEHOLDER digest "
+              f"({source}). This is NOT a release signature. Run release/make_bundle.py first, "
+              "or pass --require-manifest to refuse this path.")
+    else:
+        print(f"PASS: LMS release signed and verified over {source} (self-checking round trip).")
     return 0
 
 
