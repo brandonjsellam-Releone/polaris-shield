@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pytest
 
 from vorlath_shield import shield
+from vorlath_shield.shield import PPKPolicy as P
 
 SUITES = [0x01, 0x02, 0x03]   # 0x03 = CNSA-2.0 pure-PQC (no classical leg)
 
@@ -133,15 +134,80 @@ def test_ppk_rfc8784_third_leg():
     ppk = b"\x11" * 32
     env = shield.encrypt(b"belt and suspenders", pub, ppk=ppk)
     assert env[6] & shield.FLAG_PPK                       # presence bound in the header
-    assert shield.decrypt(env, priv, ppk=ppk) == b"belt and suspenders"
+    assert shield.decrypt(env, priv, ppk=ppk, ppk_policy=P.REQUIRED) == b"belt and suspenders"
     with pytest.raises(Exception):                        # wrong PPK -> different key -> AEAD reject
-        shield.decrypt(env, priv, ppk=b"\x22" * 32)
+        shield.decrypt(env, priv, ppk=b"\x22" * 32, ppk_policy=P.REQUIRED)
     with pytest.raises(ValueError):                       # PPK-bound envelope, no PPK supplied
         shield.decrypt(env, priv)
-    # a non-PPK envelope ignores any supplied PPK (back-compat) and still opens
+    # The author's original assertion, preserved EXACTLY in behaviour, now reached by asking
+    # for it. The original comment read "a non-PPK envelope ignores any supplied PPK
+    # (back-compat) and still opens" - that rollout is real and this is it, as PPKPolicy.OPTIONAL.
     env2 = shield.encrypt(b"no ppk", pub)
     assert not (env2[6] & shield.FLAG_PPK)
-    assert shield.decrypt(env2, priv, ppk=b"\x33" * 32) == b"no ppk"
+    assert shield.decrypt(env2, priv, ppk=b"3" * 32, ppk_policy=P.OPTIONAL) == b"no ppk"
+    assert shield.decrypt(env2, priv) == b"no ppk"        # no ppk supplied at all: unaffected
+
+
+def test_supplying_a_ppk_without_a_policy_is_refused():
+    """The gate. FLAG_PPK says what the SENDER did; it cannot say what the recipient accepts.
+
+    Choosing either answer silently is the original defect, so the library refuses to choose.
+    A caller who passes no PPK is unaffected and needs no policy.
+    """
+    pub, priv = shield.generate_recipient_keys(0x02)
+    env = shield.encrypt(b"x", pub)
+    with pytest.raises(ValueError, match="without a ppk_policy"):
+        shield.decrypt(env, priv, ppk=b"D" * 32)      # deliberately NO policy - that is the test
+    assert shield.decrypt(env, priv) == b"x"          # no key, no policy, no change
+
+
+def test_required_policy_rejects_an_unbound_envelope():
+    """The attack: public-key encryption means no crypto break is needed.
+
+    An attacker holding only the recipient's PUBLIC bundle mints an unbound envelope. A
+    recipient who believes their PPK pins the channel would previously get that plaintext back
+    with no error and no flag, and the RFC 8784 property would have degraded silently to the
+    ordinary two-leg hybrid.
+    """
+    psk = b"Z" * 32
+    pub, priv = shield.generate_recipient_keys(0x02)
+    evil = shield.encrypt(b"attacker-chosen plaintext", pub)
+    assert not (evil[6] & shield.FLAG_PPK)
+    with pytest.raises(ValueError, match="not PPK-bound"):
+        shield.decrypt(evil, priv, ppk=psk, ppk_policy=P.REQUIRED)
+
+    spk, ssk = shield.generate_signing_keys(0x02)
+    signed_unbound = shield.encrypt_authenticated(b"signed but unbound", pub, ssk, spk)
+    with pytest.raises(ValueError, match="not PPK-bound"):
+        shield.decrypt_authenticated(signed_unbound, priv, spk, ppk=psk, ppk_policy=P.REQUIRED)
+
+    good = shield.encrypt(b"bound", pub, ppk=psk)
+    assert shield.decrypt(good, priv, ppk=psk, ppk_policy=P.REQUIRED) == b"bound"
+
+
+def test_required_policy_is_not_gated_on_the_key_turning_up():
+    """Policy must resolve BEFORE the key is inspected.
+
+    An earlier draft of this fix checked `if ppk and require_ppk`, so a rotation or config
+    failure yielding ppk=None skipped the check entirely and accepted an attacker's unbound
+    envelope - under a parameter named `require`. A strict setting must not become permissive
+    at exactly the moment the secret goes missing.
+    """
+    pub, priv = shield.generate_recipient_keys(0x02)
+    evil = shield.encrypt(b"attacker-chosen plaintext", pub)
+    for missing in (None, b""):
+        with pytest.raises(ValueError, match="no pre-shared key was supplied"):
+            shield.decrypt(evil, priv, ppk=missing, ppk_policy=P.REQUIRED)
+
+
+def test_forbidden_policy_rejects_a_bound_envelope():
+    psk = b"Z" * 32
+    pub, priv = shield.generate_recipient_keys(0x02)
+    bound = shield.encrypt(b"bound", pub, ppk=psk)
+    with pytest.raises(ValueError, match="FORBIDDEN"):
+        shield.decrypt(bound, priv, ppk=psk, ppk_policy=P.FORBIDDEN)
+    assert shield.decrypt(shield.encrypt(b"plain", pub), priv, ppk=psk,
+                          ppk_policy=P.FORBIDDEN) == b"plain"
 
 
 def test_ppk_combines_with_authentication_and_pure_pqc():
@@ -151,9 +217,10 @@ def test_ppk_combines_with_authentication_and_pure_pqc():
     ppk = b"\xAB" * 32
     env = shield.encrypt_authenticated(b"signed+ppk", pub, ssk, spk, ppk=ppk)
     assert (env[6] & shield.FLAG_PPK) and (env[6] & shield.FLAG_AUTHENTICATED)
-    assert shield.decrypt_authenticated(env, priv, spk, ppk=ppk) == b"signed+ppk"
+    assert shield.decrypt_authenticated(env, priv, spk, ppk=ppk,
+                                        ppk_policy=P.REQUIRED) == b"signed+ppk"
     with pytest.raises(Exception):
-        shield.decrypt_authenticated(env, priv, spk, ppk=b"\x00" * 32)
+        shield.decrypt_authenticated(env, priv, spk, ppk=b"\x00" * 32, ppk_policy=P.REQUIRED)
 
 
 def test_pure_pqc_suite_0x03_roundtrip_and_no_classical():
