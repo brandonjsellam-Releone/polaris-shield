@@ -51,18 +51,35 @@ import sys
 # from tech/ or as a module — mirrors the sys.path shim used by the repo's tests.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _TECH = os.path.dirname(_HERE)
-if _TECH not in sys.path:
-    sys.path.insert(0, _TECH)
+# _TECH for `vorlath_shield`; _HERE for the sibling `altcodec`. _HERE is added by Python itself
+# when this file is RUN as a script, but not when it is IMPORTED (as the drift test imports it),
+# so add it explicitly rather than depending on how the caller got here.
+for _p in (_TECH, _HERE):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import altcodec  # noqa: E402  (same shim; used only for its declared-scope table)
 
 from vorlath_shield import shield  # noqa: E402  (after sys.path shim)
 
 OUT_PATH = os.path.join(_HERE, "pstv_vectors.json")
 
-SUITES = [0x01, 0x02]
+# DERIVED, not hand-typed. Was `[0x01, 0x02]`, which meant the reference could gain a suite
+# (it gained 0x03) with the corpus silently continuing to cover only the old two, while this
+# file's docstring went on saying it "covers BOTH suites". Now a new suite in shield.SUITES
+# enters the corpus automatically unless altcodec explicitly declares it out of scope.
+#
+# Today this evaluates to [0x01, 0x02] -- byte-identical output, no corpus churn. The point is
+# what happens next time: adding 0x04 to shield changes this list, which changes the corpus,
+# which trips the corpus digest pin. That is the intended alarm, not a regression.
+SUITES = sorted(set(shield.SUITES) - set(altcodec.OUT_OF_SCOPE_SUITES))
 SUITE_LABEL = {
     0x01: "FIPS-standard: X25519 + ML-KEM-768 + ML-DSA-65 + HKDF-SHA256 + AES-256-GCM",
     0x02: "CNSA-2.0 (default): X448 + ML-KEM-1024 + ML-DSA-87 + HKDF-SHA384 + AES-256-GCM",
 }
+# Keep the curated prose for the suites that have it; fall back to the reference's own name for
+# any suite added later, so a new suite yields a labelled vector rather than a KeyError here.
+SUITE_LABEL = {sid: SUITE_LABEL.get(sid, shield.SUITES[sid].name) for sid in SUITES}
 
 ANON_PLAINTEXT = b"VORLATH Shield PSTV: anonymous single-shot known-answer vector."
 AUTH_PLAINTEXT = b"VORLATH Shield PSTV: authenticated (ML-DSA) single-shot vector."
@@ -633,10 +650,10 @@ def build_corpus() -> dict:
                 "DIFFERENT corpus. Tests read this file and never call the generator."
             ),
             "envelope_version": shield.VERSION,
-            "suite_ids": {
-                "0x01": SUITE_LABEL[0x01],
-                "0x02": SUITE_LABEL[0x02],
-            },
+            # Derived from SUITES for the same reason SUITES itself is derived: this metadata
+            # is what an external implementer reads to learn what the corpus covers, so it must
+            # not be able to disagree with what the corpus actually contains.
+            "suite_ids": {f"0x{sid:02x}": SUITE_LABEL[sid] for sid in SUITES},
             "field_encoding": (
                 "All binary fields are UPPERCASE hex (str.encode then .hex().upper()). "
                 "Hex comparison is case-insensitive."

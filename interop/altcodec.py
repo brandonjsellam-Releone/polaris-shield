@@ -16,9 +16,15 @@ uses — ``kyber-py`` (ML-KEM decapsulation), ``dilithium-py`` (ML-DSA verify), 
 math from scratch is out of scope; re-implementing the *format* is the point.
 
 Scope: decode-only of the single-shot ``VRSH`` envelope (anonymous and
-authenticated) for both suites 0x01 and 0x02. Streaming (``VRST``) decode is a
-bonus and is provided as ``open_stream`` below. Everything is derived from the
-sections of FORMAT.md cited inline.
+authenticated). Streaming (``VRST``) decode is a bonus and is provided as
+``open_stream`` below. Everything is derived from the sections of FORMAT.md
+cited inline.
+
+The suites and flags this decoder does **not** cover are declared as
+``OUT_OF_SCOPE_SUITES`` / ``OUT_OF_SCOPE_FLAGS`` below and cross-checked against
+the reference implementation by ``interop/test_suite_scope_drift.py`` — so the
+gap is a recorded decision that cannot silently go stale, rather than a prose
+sentence that stops being true when the reference grows.
 
 Honest framing: this is a project convention, not a standardized protocol; the
 primitive libraries are reference implementations, not FIPS-validated modules.
@@ -102,6 +108,29 @@ _SUITES = {
     0x02: _Suite(0x02, _ECDH(X448PrivateKey, X448PublicKey),
                  ML_KEM_1024, ML_DSA_87, hashes.SHA384,
                  ecdh_pub_len=56, kem_ek_len=1568, kem_dk_len=3168, kem_ct_len=1568),
+}
+
+
+# --- Declared scope -------------------------------------------------------------------------
+# Anything the reference implementation defines that this decoder does NOT implement must be
+# listed here with a reason. `interop/test_suite_scope_drift.py` cross-checks these against
+# `vorlath_shield.shield` and fails if the reference grows a suite or a flag that is neither
+# implemented above nor declared here. It also verifies each declaration is TRUE -- that the
+# named suite/flag really is unsupported -- so this table cannot be used to wave something
+# through that is actually broken.
+#
+# Deliberately plain literals rather than imports: altcodec must not import vorlath_shield
+# (see the module header). The cross-check lives in the test, which may import both.
+OUT_OF_SCOPE_SUITES = {
+    0x03: "CNSA-2.0-pure (no classical leg). shield.py:104-110 documents this suite as "
+          "deliberately dropping hybrid defence-in-depth; no independent decode path is "
+          "written for it yet, so it has no cross-check.",
+}
+
+OUT_OF_SCOPE_FLAGS = {
+    0x02: "FLAG_PPK. The RFC 8784-style third length-framed IKM leg (FORMAT.md:79 and :169) "
+          "is not parsed here and `decrypt()` has no `ppk` parameter, so a PPK envelope "
+          "fails AEAD open rather than being decoded.",
 }
 
 
