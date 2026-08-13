@@ -66,13 +66,13 @@ def _content_digest(path: pathlib.Path) -> str:
 _PINNED = [
     pytest.param(
         "acvp/acvp_vectors.json",
-        "ef45b8d34ece2c9c945ba62f82d44ea5f6217bf5601208b984f2607b46bb127e",
+        "e57187e3264419ad39c8626494c58f63b27cead692a74f3430a686c86a277cef",
         "the vendored NIST ACVP corpus changed; refresh deliberately and update this digest",
         id="acvp_vectors.json",
     ),
     pytest.param(
         "interop/pstv_vectors.json",
-        "0aaa587644d7b92c6ed5e6625881ef7cc4879dada4011044031b062bedfe757d",
+        "4a513f8fd0b6eaf0703f13a957fe81eefe5842eeb4aa57f55422d362ea258623",
         "the PSTV corpus was re-minted; it is supposed to be frozen",
         id="pstv_vectors.json",
     ),
@@ -83,7 +83,7 @@ _PINNED = [
 def test_corpus_digest_is_pinned(rel, expected, meaning):
     path = _ROOT / rel
     assert path.exists(), f"{rel} is missing entirely — the suite it feeds would skip or pass vacuously"
-    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    actual = _content_digest(path)
     assert actual == expected, (
         f"{rel} does not match its pinned digest — {meaning}.\n"
         f"  expected {expected}\n"
