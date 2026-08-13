@@ -29,8 +29,21 @@ jobs:
           python sbom/make_sbom.py
           python release/make_bundle.py
           echo "BUNDLE_DIGEST=$(python -c 'import json;print(json.load(open("release/RELEASE_MANIFEST.json"))["bundle_digest"])')" >> "$GITHUB_ENV"
-          # self-check: every listed file still hashes as recorded
-          sha256sum -c release/RELEASE_MANIFEST.sha256
+          # The `sha256sum -c release/RELEASE_MANIFEST.sha256` that used to sit here has been
+          # removed. It ran immediately AFTER make_bundle.py wrote that manifest, so it compared
+          # freshly-generated hashes to the files they had just been generated from: 70 lines of
+          # "OK" that could not fail. Demonstrated by tampering with a source file and running
+          # this exact order - the tamper was invisible, exit 0.
+          #
+          # It cannot simply be moved earlier, either: RELEASE_MANIFEST.{json,sha256} are
+          # gitignored (.gitignore:18-19) as build output, so on a clean checkout there is no
+          # prior manifest to check against. A self-check needs a baseline that arrives
+          # independently of the build, and this one has none.
+          #
+          # The real integrity control for a release is the cosign keyless signature over the
+          # bundle, which binds the artifact to this repo's OIDC identity and is verifiable by a
+          # third party. That is unaffected by this removal. What is removed is a step that
+          # looked like a second, independent control and was not.
 
       - name: Full transitive SBOM (resolved environment)
         run: |
