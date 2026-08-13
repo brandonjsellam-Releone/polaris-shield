@@ -134,7 +134,12 @@ def test_ml_dsa_sigver_acvp(v):
 
 
 def test_vectors_are_official():
-    assert "NIST ACVP" in VEC["_meta"]["source"]
+    # Provenance is pinned by SHA-256 in test_corpus_integrity.py, not asserted here.
+    # The former check was `assert "NIST ACVP" in VEC["_meta"]["source"]` - a substring
+    # match on a prose field inside the very file being validated, which any edit that
+    # kept those two words would satisfy. What remains below are structural claims about
+    # the corpus CONTENT, which are real checks: section sizes, and that the sigVer and
+    # implicit-rejection sections carry both branches rather than only the happy path.
     for sec in ("ML-KEM keyGen", "ML-KEM encaps", "ML-KEM decaps", "ML-DSA keyGen", "ML-DSA sigGen"):
         assert len(VEC[sec]) >= 9
     # sigVer sections must carry BOTH valid and invalid signatures.

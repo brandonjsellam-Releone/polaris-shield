@@ -155,7 +155,10 @@ def _open_altcodec(vec, env, priv):
 
 def test_corpus_is_frozen_and_documented():
     meta = _CORPUS["meta"]
-    assert meta["frozen"] is True
+    # `frozen` is written by interop/gen_pstv_vectors.py:629 and was asserted here, so the
+    # generator was confirming its own output and a re-mint stayed green. The corpus is now
+    # pinned by SHA-256 in test_corpus_integrity.py, where the expected value lives outside
+    # the artifact and a re-mint therefore fails. The flag is still read below as metadata.
     assert "authority" in meta and "FORMAT.md" in meta["spec"]
     # Sanity: both suites and all four kinds are represented.
     suites = {v["suite_id"] for v in _ALL}
