@@ -5,6 +5,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least privilege for GITHUB_TOKEN: every job in this workflow only reads the repo
+# (checkout + lint/type/test + pip-audit). Nothing here writes to the repo, so the token
+# is read-only by default; a job that genuinely needs more must widen it explicitly.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: ${{ matrix.os }} · py${{ matrix.python }}
