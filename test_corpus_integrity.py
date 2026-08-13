@@ -35,6 +35,25 @@ import pytest
 
 _ROOT = pathlib.Path(__file__).resolve().parent
 
+_CRLF = bytes([13, 10])
+_LF = bytes([10])
+
+
+def _content_digest(path: pathlib.Path) -> str:
+    """SHA-256 of the file's content with line endings normalised to LF.
+
+    Hashing the RAW bytes was the obvious thing to do and it was wrong: git checks these files
+    out CRLF on Windows and LF elsewhere, so the raw digest is a property of the CHECKOUT
+    PLATFORM, not of the corpus. The first version of this test pinned the Windows bytes and
+    failed all sixteen macOS and Linux CI legs, with a diff of exactly the 1225 CR bytes in
+    acvp_vectors.json.
+
+    Normalising to LF pins what git actually tracks, so the same corpus gives the same digest
+    everywhere. It does mean a pure CRLF/LF change is invisible here — which is correct: that is
+    a checkout artifact, not a change to the vectors.
+    """
+    return hashlib.sha256(path.read_bytes().replace(_CRLF, _LF)).hexdigest()
+
 # (path, sha256, what changing it means)
 #
 # ACVP: upstream usnistgov/ACVP-Server @ 15c0f3deeefb (RELEASE/v1.1.0.42). Refreshing from a
@@ -82,7 +101,7 @@ def test_the_pin_can_actually_fail():
     that never looks.
     """
     path = _ROOT / "acvp/acvp_vectors.json"
-    raw = path.read_bytes()
+    raw = path.read_bytes().replace(_CRLF, _LF)   # same normalisation the pin uses
     mutated = raw[:-1] + (b"\x20" if raw[-1:] != b"\x20" else b"\x09")
     assert hashlib.sha256(mutated).hexdigest() != hashlib.sha256(raw).hexdigest(), (
         "a one-byte change did not move the digest; the comparison above is not reading the file"
