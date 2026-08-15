@@ -1,0 +1,37 @@
+# gitleaks configuration for polaris-shield.
+#
+# Extends the stock ruleset rather than replacing it: `useDefault = true` keeps every upstream rule,
+# so this file can only ever ADD an exception, never silently drop a detection.
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------------------------
+# ONE path allowlist, and it needs justifying rather than asserting.
+#
+# `acvp/acvp_vectors.json` is the vendored NIST ACVP corpus. A full-history scan reports 35
+# `generic-api-key` findings in it — every one a high-entropy hex string from a PUBLISHED
+# standardised test vector, which is what that file is made of. Nothing in it is a credential and
+# nothing in it is ours.
+#
+# Normally a path exclusion is the wrong tool: it produces a check that no input can defeat, which
+# is exactly the defect class this project's risk register documents. It is defensible HERE, and
+# only here, because the file is already covered by a STRONGER, content-addressed control:
+#
+#   test_corpus_integrity.py pins the corpus by SHA-256 (CRLF-normalised, so the digest is a
+#   property of the corpus rather than of the checkout platform).
+#
+# That control was mutation-tested before this exclusion was written, not assumed. Flipping a
+# single byte of the corpus produces:
+#
+#   FAILED test_corpus_integrity.py::test_corpus_digest_is_pinned[acvp_vectors.json]
+#   AssertionError: acvp/acvp_vectors.json does not match its pinned digest — the vendored NIST
+#   ACVP corpus changed; refresh deliberately and update this digest.
+#
+# So a secret cannot be ADDED to this file without a test going red. gitleaks is not the control
+# for it; the digest is. The alternative — 35 individual fingerprints — would break on any
+# legitimate corpus refresh and teach whoever hits that to delete the lot.
+#
+# If the digest pin is ever removed, this exclusion must be removed with it.
+[allowlist]
+description = "Vendored NIST ACVP test vectors, covered by the SHA-256 pin in test_corpus_integrity.py"
+paths = ['''acvp/acvp_vectors\.json''']
