@@ -32,7 +32,7 @@ cosign verify-blob \
 
 # 3. Confirm SLSA build provenance traces to the exact commit
 gh attestation verify vorlath-shield-bundle.tar.gz \
-  --repo brandonjsellam-Releone/vorlath-shield
+  --repo brandonjsellam-Releone/polaris-shield
 ```
 
 If step 1's digest equals the signed digest from step 2, the proofs/tests you re-run from
