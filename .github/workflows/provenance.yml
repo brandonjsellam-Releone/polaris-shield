@@ -57,10 +57,30 @@ jobs:
 
       - name: Package the signed payloads
         run: |
+          # cbom is in this list because release/make_bundle.py's INCLUDE list hashes
+          # cbom/cbom.cdx.json. The two lists are separate statements of "what is in the bundle"
+          # and they had drifted: the v2.1.0 tarball had no cbom/ entry while the manifest signed
+          # beside it listed cbom/cbom.cdx.json. The step after this one is what catches the next
+          # drift, in either direction.
           tar -czf vorlath-shield-bundle.tar.gz \
             vorlath_shield formal acvp interop sidechannel \
             *.md *.py kat_vectors.json requirements.txt pyproject.toml Dockerfile \
-            sbom release
+            sbom cbom release
+
+      - name: Check the packaged bundle against its own manifest
+        run: |
+          set -euo pipefail
+          # cosign signs RELEASE_MANIFEST.json below, so the manifest has to describe the bytes
+          # that actually ship. Extract what was just packaged and verify every manifest line
+          # against the extracted tree, not against the working directory those hashes came from.
+          # On the v2.1.0 bundle this exact command exits 1 with
+          #   cbom/cbom.cdx.json: FAILED open or read
+          # which is the defect it exists to catch.
+          rm -rf "$RUNNER_TEMP/bundle-check"
+          mkdir -p "$RUNNER_TEMP/bundle-check"
+          tar -xzf vorlath-shield-bundle.tar.gz -C "$RUNNER_TEMP/bundle-check"
+          cd "$RUNNER_TEMP/bundle-check"
+          sha256sum -c release/RELEASE_MANIFEST.sha256
 
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
