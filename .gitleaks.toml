@@ -32,6 +32,10 @@ useDefault = true
 # legitimate corpus refresh and teach whoever hits that to delete the lot.
 #
 # If the digest pin is ever removed, this exclusion must be removed with it.
+# The path regex is anchored. gitleaks matches allowlist paths with Go's regexp MatchString, which is a
+# substring match, so an unanchored 'acvp/acvp_vectors\.json' would also exempt
+# 'acvp/acvp_vectors.json.bak' or 'vendor/acvp/acvp_vectors.json.old'. Only the one pinned file is
+# covered by the digest control above, so only the one pinned file is exempt.
 [allowlist]
 description = "Vendored NIST ACVP test vectors, covered by the SHA-256 pin in test_corpus_integrity.py"
-paths = ['''acvp/acvp_vectors\.json''']
+paths = ['''^acvp/acvp_vectors\.json$''']
