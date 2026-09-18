@@ -1,7 +1,27 @@
 # gitleaks configuration for polaris-shield.
 #
-# Extends the stock ruleset rather than replacing it: `useDefault = true` keeps every upstream rule,
-# so this file can only ever ADD an exception, never silently drop a detection.
+# Extends the stock ruleset rather than replacing it: `useDefault = true` starts from every upstream
+# rule.
+#
+# That is a starting point, not a guarantee. This file used to claim it "can only ever ADD an
+# exception, never silently drop a detection". That was false, and nothing checked it: the same
+# [extend] table accepts `disabledRules`, which switches stock rules off, and a wide enough
+# allowlist suppresses their findings just as effectively. Adding
+# `disabledRules = ["aws-access-token", "slack-bot-token"]` here left the whole secret-scan job
+# green while the full-history scan went from "leaks found: 2" to "no leaks found" on a tree
+# carrying one of each.
+#
+# So the property is now enforced instead of asserted. The teeth step in
+# .github/workflows/secret-scan.yml plants two findings in a throwaway repository and requires BOTH
+# RuleIDs in gitleaks' JSON report: `teeth-canary`, from a rule that step defines, and
+# `aws-access-token`, which only the stock ruleset provides. Disabling that stock rule here, or
+# allowlisting its findings away, turns the teeth step red and with it the job. Note that a
+# disabled `aws-access-token` still leaves the planted key caught by `generic-api-key`, so the
+# check has to look at WHICH rules fired, not at the count or the exit code.
+#
+# The scope of that guarantee, stated rather than implied: one stock rule is a canary for the
+# `disabledRules` axis, not a proof for every rule on it. Switching off some other stock rule would
+# still pass. Widening the canary means planting more findings in that step.
 [extend]
 useDefault = true
 
