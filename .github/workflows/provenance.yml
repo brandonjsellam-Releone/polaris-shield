@@ -61,7 +61,8 @@ jobs:
           # cbom/cbom.cdx.json. The two lists are separate statements of "what is in the bundle"
           # and they had drifted: the v2.1.0 tarball had no cbom/ entry while the manifest signed
           # beside it listed cbom/cbom.cdx.json. The step after this one is what catches the next
-          # drift, in either direction.
+          # drift, and it checks both directions of it: a manifest line with no file, and a file
+          # with no manifest line. Each direction needs its own command; see there.
           tar -czf vorlath-shield-bundle.tar.gz \
             vorlath_shield formal acvp interop sidechannel \
             *.md *.py kat_vectors.json requirements.txt pyproject.toml Dockerfile \
@@ -71,16 +72,57 @@ jobs:
         run: |
           set -euo pipefail
           # cosign signs RELEASE_MANIFEST.json below, so the manifest has to describe the bytes
-          # that actually ship. Extract what was just packaged and verify every manifest line
-          # against the extracted tree, not against the working directory those hashes came from.
-          # On the v2.1.0 bundle this exact command exits 1 with
-          #   cbom/cbom.cdx.json: FAILED open or read
-          # which is the defect it exists to catch.
+          # that actually ship. Extract what was just packaged and check it against the manifest in
+          # the extracted tree, not against the working directory those hashes came from.
           rm -rf "$RUNNER_TEMP/bundle-check"
           mkdir -p "$RUNNER_TEMP/bundle-check"
           tar -xzf vorlath-shield-bundle.tar.gz -C "$RUNNER_TEMP/bundle-check"
           cd "$RUNNER_TEMP/bundle-check"
+
+          # Direction 1 - every manifest line resolves, and to the right bytes. On the v2.1.0
+          # bundle this exact command exits 1 with
+          #   cbom/cbom.cdx.json: FAILED open or read
+          # which is the defect it exists to catch.
           sha256sum -c release/RELEASE_MANIFEST.sha256
+
+          # Direction 2 - nothing ships that the manifest does not attest. `sha256sum -c` cannot
+          # see this: it only ever walks the lines it is handed, so a file that leaves the manifest
+          # while staying in the tar list passes it silently. Reproduced by dropping
+          # "cbom/cbom.cdx.json" from release/make_bundle.py's INCLUDE and leaving cbom in the tar
+          # list above: 72 manifest lines, all OK, exit 0, and cbom/cbom.cdx.json shipping inside a
+          # bundle whose cosign signature no longer covers it. That is the v2.1.0 drift in the
+          # other direction and it is the worse of the two.
+          #
+          # The exceptions are named one by one rather than globbed away. Two are the manifest
+          # itself, which cannot hash itself (make_bundle.py EXCLUDEs it). The other eight are
+          # packaging scripts, release tooling and docs that INCLUDE deliberately does not cover,
+          # plus the resolved-environment SBOM, which is generated after the manifest is written.
+          # A file appearing here that is not on this list is a question worth answering - should
+          # this ship without being signed for? - so the job stops until someone answers it.
+          cat > "$RUNNER_TEMP/unattested-allowed.txt" <<'EOF'
+          CONTRIBUTING.md
+          cbom/make_cbom.py
+          release/README.md
+          release/RELEASE_MANIFEST.json
+          release/RELEASE_MANIFEST.sha256
+          release/lms.Dockerfile
+          release/make_bundle.py
+          release/sign_lms.py
+          sbom/make_sbom.py
+          sbom/sbom.full.cdx.json
+          EOF
+          LC_ALL=C sort -o "$RUNNER_TEMP/unattested-allowed.txt" "$RUNNER_TEMP/unattested-allowed.txt"
+          awk '{print $2}' release/RELEASE_MANIFEST.sha256 | LC_ALL=C sort > "$RUNNER_TEMP/attested.txt"
+          find . -type f | sed 's|^\./||' | LC_ALL=C sort > "$RUNNER_TEMP/shipped.txt"
+          unattested="$(LC_ALL=C comm -23 "$RUNNER_TEMP/shipped.txt" "$RUNNER_TEMP/attested.txt" \
+                        | LC_ALL=C comm -23 - "$RUNNER_TEMP/unattested-allowed.txt")"
+          if [ -n "$unattested" ]; then
+            echo "::error::these files ship inside the bundle but no line of the cosign-signed manifest attests them:"
+            printf '%s\n' "$unattested" | sed 's/^/  /'
+            exit 1
+          fi
+          echo "bundle check: $(wc -l < "$RUNNER_TEMP/attested.txt") files attested by the manifest," \
+               "$(wc -l < "$RUNNER_TEMP/unattested-allowed.txt") named exceptions, nothing else in the tarball"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
